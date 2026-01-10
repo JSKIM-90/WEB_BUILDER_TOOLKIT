@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__figma-desktop__get_metadata",
+      "mcp__figma-desktop__get_screenshot",
+      "mcp__figma-desktop__get_design_context",
+      "Bash(npx serve:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(npx playwright:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:127.0.0.1)",
+      "Bash(powershell -Command \"(Get-ChildItem ''node_modules\\.bin'').Name\")",
+      "Bash(powershell:*)",
+      "Bash(mkdir -p:*)",
+      "Bash(powershell -Command \"Start-Sleep -Seconds 3\")",
+      "Bash(node -e:*)",
+      "WebSearch",
+      "WebFetch(domain:echarts.apache.org)",
+      "Bash(cat:*)",
+      "Bash(xargs:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:tabulator.info)",
+      "Bash(done)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: README.md 및 Agent Skill 분석 문서 추가\n\n- README.md: 프로젝트 사용 가이드 \\(사전 준비, 워크플로우, 문제 해결\\)\n- discussions/2025-12-26_agent_skill_analysis.md: Agent Skill 변환 가능성 분석\n- CLAUDE.md: 답변 전 필수 확인 규칙 추가 \\(외부 용어 검증\\)\n- 서브모듈 업데이트 \\(Figma_Conversion, RNBT_architecture\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Skill(figma-to-html)",
+      "Skill(figma-to-html:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(skills\\): create-dashboard 템플릿을 Flexbox로 통일\n\n- page_styles/container.css 템플릿에서 Grid → Flexbox로 변경\n- CSS 원칙\\(Flexbox 우선\\)과 문서 예시 간 모순 해소\n- RNBT_architecture 서브모듈 업데이트 \\(응답 구조 패턴 통일\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: 응답 구조 패턴 통일 \\(response → { response }\\)\n\nSKILL 문서와 일관성 유지를 위해 남은 파일들 수정:\n- Components/LogViewer/scripts/register.js\n- Components/LogViewer/preview.html\n- Projects/HANA_BANK_HIT_Dev/TimeTrendChart\n- Projects/HANA_BANK_HIT_Dev/PerformanceMonitoring\n- Examples/example_tutorial/StatsCards/preview.html\n- Examples/example_tutorial/Header/preview.html\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs\\(skills\\): 함수형 코딩 지침 문서 추가\n\n- CODING_STYLE.md 신규 생성: 함수형 프로그래밍 가이드라인\n  - 안티패턴: fx.each 안에 명령형 코드 덩어리\n  - 권장 패턴: 파이프라인 + 분리된 함수\n  - 판단 기준: 함수형 vs 명령형 선택 가이드\n  - 실전 패턴: 리스트 렌더링, 필드 렌더링 등\n- 각 SKILL.md에 CODING_STYLE.md 참조 추가\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(SimpleDashboard\\): unbindEvents → removeCustomEvents 수정\n\n존재하지 않는 함수명 사용 수정\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(xcopy:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

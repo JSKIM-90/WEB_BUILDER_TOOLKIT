@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figma 컴포넌트 포털</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 60px;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .component-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .component-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .component-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .component-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+
+        .component-description {
+            font-size: 14px;
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .component-path {
+            font-size: 12px;
+            color: #a0aec0;
+            font-family: 'Courier New', monospace;
+            background: #f7fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            word-break: break-all;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 60px;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .card-wrapper {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-wrapper:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-link {
+            flex: 1;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Figma 컴포넌트 포털</h1>
+        <p class="subtitle">Figma MCP로 변환된 컴포넌트들을 확인하세요</p>
+
+        <div class="components-grid">
+            <!-- CPU Status Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/cpu-status/cpu-status.html" class="component-card">
+                <div class="component-icon">🖥️</div>
+                <span class="badge">Dashboard</span>
+                <h2 class="component-title">CPU Status</h2>
+                <p class="component-description">
+                    주요 업무 그룹 CPU 현황을 보여주는 복수 도넛 차트 컴포넌트입니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/cpu-status/cpu-status.html</div>
+            </a>
+
+            <!-- Institution Delay Top5 Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/institution-delay-top5/institution-delay-top5.html" class="component-card">
+                <div class="component-icon">📊</div>
+                <span class="badge">Dashboard</span>
+                <h2 class="component-title">Institution Delay Top5</h2>
+                <p class="component-description">
+                    기관별 지연 상위 5개를 보여주는 테이블 컴포넌트입니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/institution-delay-top5/institution-delay-top5.html</div>
+            </a>
+
+            <!-- Performance Status Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/performance-status/performance-status.html" class="component-card">
+                <div class="component-icon">📈</div>
+                <span class="badge">Dashboard</span>
+                <h2 class="component-title">Performance Status</h2>
+                <p class="component-description">
+                    성능 현황을 보여주는 대시보드 컴포넌트입니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/performance-status/performance-status.html</div>
+            </a>
+
+            <!-- Performance Status V2 Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/performance-status-v2/performance-status-v2.html" class="component-card">
+                <div class="component-icon">📈</div>
+                <span class="badge">Dashboard</span>
+                <h2 class="component-title">Performance Status V2</h2>
+                <p class="component-description">
+                    성능 현황을 보여주는 대시보드 컴포넌트 (V2)입니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/performance-status-v2/performance-status-v2.html</div>
+            </a>
+
+            <!-- Time Trend Chart Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/time-trend-chart/time-trend-chart.html" class="component-card">
+                <div class="component-icon">⏱️</div>
+                <span class="badge">Chart</span>
+                <h2 class="component-title">Time Trend Chart</h2>
+                <p class="component-description">
+                    시간대별 트렌드를 보여주는 차트 컴포넌트입니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/time-trend-chart/time-trend-chart.html</div>
+            </a>
+
+            <!-- Server Icon2 Component -->
+            <a href="./Conversion/HANA_BANK_HIT_Dev/server-icon2/server-icon2.html" class="component-card">
+                <div class="component-icon">🖥️</div>
+                <span class="badge">Icon</span>
+                <h2 class="component-title">Server Icon2</h2>
+                <p class="component-description">
+                    서버 상태를 나타내는 3D 아이콘 컴포넌트입니다. Normal/Warning/Inactive 상태를 지원합니다.
+                </p>
+                <div class="component-path">./Conversion/HANA_BANK_HIT_Dev/server-icon2/server-icon2.html</div>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>Figma MCP Server를 통해 생성된 컴포넌트 | Claude Code</p>
+        </div>
+    </div>
+</body>
+</html>
