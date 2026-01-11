@@ -13,7 +13,6 @@ WEB_BUILDER_TOOLKIT/
 ├── CLAUDE.md                   # Claude Code 지침서 (자동 로드)
 ├── README.md                   # 이 문서
 ├── index.html                  # 프로젝트 포탈 페이지
-├── discussions/                # 설계 논의 문서
 │
 ├── Figma_Conversion/           # Figma → 정적 HTML/CSS
 │   ├── CLAUDE.md               # Figma 변환 상세 지침
