@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('로그인 후 visual.do 접속 확인', async ({ page }) => {
+test('로그인 후 visual.do 접속 확인', { timeout: 60000 }, async ({ page }) => {
   // 로그인 페이지 접속
   await page.goto('/renobit');
 
@@ -224,4 +224,82 @@ test('로그인 후 visual.do 접속 확인', async ({ page }) => {
   await expect(registerTab).toHaveClass(/is-active/);
 
   console.log('✓ register (JavaScript) 탭 선택 확인 완료');
+
+  // register 탭의 Monaco 에디터에 코드 입력
+  const registerEditorSelector = '#allEditArea #pane-0 > div > div > div.overflow-guard > div.monaco-scrollable-element.editor-scrollable.vs-dark > div.lines-content.monaco-editor-background > div.view-lines.monaco-mouse-cursor-text';
+
+  await codeBoxPage.locator(registerEditorSelector).waitFor({ state: 'visible' });
+  await codeBoxPage.locator(registerEditorSelector).click();
+
+  // 기존 내용 전체 선택 후 삭제
+  await codeBoxPage.keyboard.press('Control+a');
+  await codeBoxPage.keyboard.press('Backspace');
+
+  // openPage 코드 입력
+  const registerCode = `const openPage = wemb.pageManager.openPageByName.bind(wemb.pageManager);
+this.appendElement.addEventListener('click', () => openPage('openPageTarget'));`;
+
+  await codeBoxPage.keyboard.type(registerCode);
+
+  // Apply 버튼 클릭
+  await codeBoxPage.locator('.apply-btn').click();
+
+  console.log('✓ register 탭에 openPage 코드 입력 완료');
+
+  // visual.do 탭으로 돌아가기
+  await page.bringToFront();
+
+  // Ctrl+S로 저장
+  await page.keyboard.press('Control+s');
+  await page.waitForTimeout(1000);
+
+  console.log('✓ 코드 저장 완료');
+
+  // 캔버스 영역 클릭하여 포커스
+  await page.locator('#app-main').click();
+
+  // Ctrl+Enter로 미리보기 실행 - 새 탭이 열림
+  const [previewPage] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.keyboard.press('Control+Enter')
+  ]);
+
+  // 뷰어 탭 로드 대기
+  await previewPage.waitForLoadState();
+
+  // visualViewer.do URL 확인
+  await expect(previewPage).toHaveURL(/visualViewer\.do/);
+
+  // 뷰어 로딩 완료 대기 (Loading Viewer 사라질 때까지)
+  await previewPage.locator('.badge_1').waitFor({ state: 'visible', timeout: 30000 });
+
+  // 페이지 이동 시 beforeUnload 콘솔 로그 수집
+  const pageTransitionLogs: string[] = [];
+  previewPage.on('console', (msg) => {
+    if (msg.text().includes('[Page]')) {
+      pageTransitionLogs.push(msg.text());
+    }
+  });
+
+  // Badge 컴포넌트 (badge_1) 클릭
+  await previewPage.locator('.badge_1').click();
+
+  // 페이지 이동 대기
+  await previewPage.waitForTimeout(1000);
+
+  // openPageTarget 페이지로 이동 확인
+  // ViewerPageComponent_ViewerPageComponent 클래스와 openPageTarget 클래스를 모두 가진 요소 확인
+  const targetPage = previewPage.locator('.ViewerPageComponent_ViewerPageComponent.openPageTarget');
+  await expect(targetPage).toBeVisible();
+
+  console.log('✓ Badge 클릭 후 openPageTarget 페이지 이동 확인 완료');
+
+  // 페이지 이동 시 beforeUnload 실행 확인
+  console.log('=== 페이지 이동 시 콘솔 로그 ===');
+  pageTransitionLogs.forEach((log) => console.log(log));
+
+  const beforeUnloadIndex = pageTransitionLogs.findIndex((log) => log.includes('Before Unload'));
+  expect(beforeUnloadIndex).toBeGreaterThanOrEqual(0);
+
+  console.log('✓ beforeUnload 라이프사이클 실행 확인 완료');
 });
