@@ -35,7 +35,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs\\(skills\\): 함수형 코딩 지침 문서 추가\n\n- CODING_STYLE.md 신규 생성: 함수형 프로그래밍 가이드라인\n  - 안티패턴: fx.each 안에 명령형 코드 덩어리\n  - 권장 패턴: 파이프라인 + 분리된 함수\n  - 판단 기준: 함수형 vs 명령형 선택 가이드\n  - 실전 패턴: 리스트 렌더링, 필드 렌더링 등\n- 각 SKILL.md에 CODING_STYLE.md 참조 추가\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(SimpleDashboard\\): unbindEvents → removeCustomEvents 수정\n\n존재하지 않는 함수명 사용 수정\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(xcopy:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Skill(create-component)"
     ],
     "deny": [],
     "ask": []
