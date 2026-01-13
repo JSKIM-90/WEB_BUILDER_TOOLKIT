@@ -11,6 +11,42 @@
       "page_id": "PAGE",
       "query": "",
       "query_type": "",
+      "description": "Building-Floor-Room hierarchy structure",
+      "dataset_id": "hierarchy-001",
+      "name": "hierarchy",
+      "rest_api": "{\"url\":\"http://localhost:4004/api/hierarchy\",\"method\":\"GET\",\"headers\":{},\"body\":\"\"}"
+    },
+    {
+      "datasource": "",
+      "mode": "0",
+      "delivery_type": "0",
+      "param_info": [
+        {
+          "param_name": "nodeId",
+          "param_type": "string",
+          "default_value": ""
+        }
+      ],
+      "data_type": "1",
+      "interval": "0",
+      "page_id": "PAGE",
+      "query": "",
+      "query_type": "",
+      "description": "Assets in selected hierarchy node",
+      "dataset_id": "hierarchy-assets-001",
+      "name": "hierarchyAssets",
+      "rest_api": "{\"url\":\"http://localhost:4004/api/hierarchy/#{nodeId}/assets\",\"method\":\"GET\",\"headers\":{},\"body\":\"\"}"
+    },
+    {
+      "datasource": "",
+      "mode": "0",
+      "delivery_type": "0",
+      "param_info": [],
+      "data_type": "1",
+      "interval": "0",
+      "page_id": "PAGE",
+      "query": "",
+      "query_type": "",
       "description": "All ECO assets list",
       "dataset_id": "assets-001",
       "name": "assets",

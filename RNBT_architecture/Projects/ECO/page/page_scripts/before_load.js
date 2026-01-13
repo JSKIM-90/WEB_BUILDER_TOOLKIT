@@ -22,7 +22,7 @@ this.eventBusHandlers = {
     // 3D 클릭 이벤트 (자기완결 컴포넌트 공통)
     // ─────────────────────────────────────────
 
-    '@assetClicked': ({ event,targetInstance }) => {
+    '@assetClicked': ({ event, targetInstance }) => {
         console.log('[Page] Asset clicked:', targetInstance.name, targetInstance.id);
         targetInstance.showDetail();
     },
@@ -31,16 +31,34 @@ this.eventBusHandlers = {
     // AssetList 이벤트 (일반 2D 컴포넌트)
     // ─────────────────────────────────────────
 
-    // 자산 행 선택 → 해당 3D 컴포넌트 팝업 표시
-    '@assetSelected': ({ event, targetInstance }) => {
-        console.log(event, targetInstance)
+    // 트리 노드 선택 → 해당 노드의 자산 목록 요청
+    '@hierarchyNodeSelected': ({ event }) => {
+        const { nodeId } = event;
+        console.log('[Page] Hierarchy node selected:', nodeId);
+
+        // hierarchyAssets 데이터 요청
+        this.currentParams = this.currentParams || {};
+        this.currentParams['hierarchyAssets'] = { nodeId };
+
+        GlobalDataPublisher.fetchAndPublish('hierarchyAssets', this, { nodeId })
+            .catch(err => console.error('[fetchAndPublish:hierarchyAssets]', err));
     },
 
-    // 새로고침 버튼 클릭 → GlobalDataPublisher로 데이터 재발행
+    // 자산 행 선택 → 해당 3D 컴포넌트 팝업 표시
+    '@assetSelected': ({ event, targetInstance }) => {
+        const { asset } = event;
+        console.log('[Page] Asset selected:', asset);
+
+        // TODO: 3D 컴포넌트 찾아서 showDetail 호출
+        // const instance3D = getInstanceById(asset.id);
+        // if (instance3D) instance3D.showDetail();
+    },
+
+    // 새로고침 버튼 클릭 → hierarchy 데이터 재발행
     '@refreshClicked': () => {
-        console.log('[Page] Refresh clicked - fetching assets');
-        GlobalDataPublisher.fetchAndPublish('assets', this, this.currentParams?.assets || {})
-            .catch(err => console.error('[fetchAndPublish:assets]', err));
+        console.log('[Page] Refresh clicked - fetching hierarchy');
+        GlobalDataPublisher.fetchAndPublish('hierarchy', this, this.currentParams?.hierarchy || {})
+            .catch(err => console.error('[fetchAndPublish:hierarchy]', err));
     }
 };
 

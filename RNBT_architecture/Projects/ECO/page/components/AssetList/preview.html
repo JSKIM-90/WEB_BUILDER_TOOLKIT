@@ -3,213 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AssetList - Preview</title>
+    <title>AssetList Preview</title>
+    <!-- External Dependencies -->
     <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
-    <link rel="stylesheet" href="./styles/component.css">
+    <!-- Component CSS -->
+    <link rel="stylesheet" href="styles/component.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Reset & Base */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #0f1219;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            gap: 20px;
-        }
-
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            background: #161b22;
-            border-radius: 8px;
-        }
-
-        .preview-title {
-            color: #e0e6ed;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .preview-controls {
-            display: flex;
-            gap: 12px;
-        }
-
-        .preview-btn {
-            padding: 8px 16px;
-            background: #21262d;
-            color: #8b949e;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .preview-btn:hover {
-            background: #30363d;
-            color: #e0e6ed;
-        }
-
-        .preview-btn.primary {
-            background: #238636;
-            border-color: #238636;
-            color: white;
-        }
-
-        .preview-btn.primary:hover {
-            background: #2ea043;
-        }
-
-        .component-container {
-            flex: 1;
-            min-height: 500px;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .event-log {
-            background: #161b22;
-            border-radius: 8px;
-            padding: 16px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .event-log-title {
-            color: #8b949e;
-            font-size: 12px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-        }
-
-        .event-log-content {
-            font-family: 'Consolas', monospace;
-            font-size: 12px;
-            color: #7ee787;
-            line-height: 1.6;
-        }
-
-        .event-log-content .warn {
-            color: #d29922;
-        }
-
-        .event-log-content .info {
-            color: #58a6ff;
+            padding: 32px;
         }
     </style>
 </head>
 <body>
-    <div class="preview-header">
-        <span class="preview-title">AssetList Preview</span>
-        <div class="preview-controls">
-            <button class="preview-btn primary" onclick="loadData()">Load Data</button>
-            <button class="preview-btn" onclick="addRandomAsset()">Add Asset</button>
-            <button class="preview-btn" onclick="clearLog()">Clear Log</button>
-        </div>
-    </div>
+    <!-- 컨테이너 ID: #asset-list-container -->
+    <div id="asset-list-container">
+        <!-- views/component.html 내용 -->
+        <div class="asset-list-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Asset List</h2>
+                <button class="refresh-btn" title="Refresh">↻</button>
+            </div>
 
-    <div class="component-container" id="component-host"></div>
+            <div class="panel-body split-layout">
+                <!-- Tree Pane -->
+                <div class="tree-pane">
+                    <div class="tree-header">
+                        <span class="tree-title">ECO 자산 관리</span>
+                        <div class="tree-controls">
+                            <button class="btn-expand-all" title="Expand All">+</button>
+                            <button class="btn-collapse-all" title="Collapse All">−</button>
+                        </div>
+                    </div>
+                    <div class="tree-search">
+                        <input type="text" class="tree-search-input" placeholder="Search tree...">
+                    </div>
+                    <div class="tree-container">
+                        <ul class="tree-root"></ul>
+                    </div>
+                </div>
 
-    <div class="event-log">
-        <div class="event-log-title">Event Log</div>
-        <div class="event-log-content" id="event-log"></div>
-    </div>
+                <!-- Resizer -->
+                <div class="pane-resizer"></div>
 
-    <script>
-        // ======================
-        // MOCK DATA
-        // ======================
-        const mockAssets = [
-            { id: 'UPS-A01', name: 'Main UPS A', type: 'ups', zone: 'Server Room A', status: 'normal' },
-            { id: 'UPS-A02', name: 'Backup UPS A', type: 'ups', zone: 'Server Room A', status: 'normal' },
-            { id: 'UPS-B01', name: 'Main UPS B', type: 'ups', zone: 'Server Room B', status: 'warning' },
-            { id: 'PDU-A01', name: 'PDU Rack A1', type: 'pdu', zone: 'Server Room A', status: 'normal' },
-            { id: 'PDU-A02', name: 'PDU Rack A2', type: 'pdu', zone: 'Server Room A', status: 'normal' },
-            { id: 'PDU-B01', name: 'PDU Rack B1', type: 'pdu', zone: 'Server Room B', status: 'critical' },
-            { id: 'CRAC-A01', name: 'CRAC Unit A1', type: 'crac', zone: 'Server Room A', status: 'normal' },
-            { id: 'CRAC-A02', name: 'CRAC Unit A2', type: 'crac', zone: 'Server Room A', status: 'warning' },
-            { id: 'CRAC-B01', name: 'CRAC Unit B1', type: 'crac', zone: 'Server Room B', status: 'normal' },
-            { id: 'SENSOR-A01', name: 'Temp Sensor A1', type: 'sensor', zone: 'Server Room A', status: 'normal' },
-            { id: 'SENSOR-A02', name: 'Temp Sensor A2', type: 'sensor', zone: 'Server Room A', status: 'normal' },
-            { id: 'SENSOR-B01', name: 'Temp Sensor B1', type: 'sensor', zone: 'Server Room B', status: 'warning' },
-        ];
-
-        // ======================
-        // MOCK IMPLEMENTATIONS
-        // ======================
-        const fx = {
-            go: (data, ...fns) => fns.reduce((acc, fn) => fn(acc), data),
-            each: (fn) => (arr) => { arr.forEach(fn); return arr; }
-        };
-
-        const Wkit = {
-            bindEvents: (ctx, events) => {
-                Object.entries(events).forEach(([eventType, handlers]) => {
-                    Object.entries(handlers).forEach(([selector, eventName]) => {
-                        ctx.appendElement.querySelectorAll(selector).forEach(el => {
-                            el.addEventListener(eventType, () => {
-                                log(`[bindEvents] ${eventName} triggered`);
-                                Weventbus.emit(eventName, { targetInstance: ctx });
-                            });
-                        });
-                    });
-                });
-            },
-            removeCustomEvents: () => {}
-        };
-
-        const Weventbus = {
-            emit: (eventName, payload) => {
-                log(`[Weventbus] ${eventName}`, 'info');
-                if (eventName === '@assetSelected') {
-                    log(`  → Asset: ${payload.event.asset.id} (${payload.event.asset.type})`, 'info');
-                }
-            }
-        };
-
-        const GlobalDataPublisher = {
-            subscribe: (topic, ctx, fn) => log(`[GlobalDataPublisher] Subscribed to "${topic}"`),
-            unsubscribe: (topic, ctx) => log(`[GlobalDataPublisher] Unsubscribed from "${topic}"`)
-        };
-
-        // ======================
-        // LOGGING
-        // ======================
-        function log(message, type = 'default') {
-            const logEl = document.getElementById('event-log');
-            const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const className = type === 'warn' ? 'warn' : type === 'info' ? 'info' : '';
-            logEl.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-
-        function clearLog() {
-            document.getElementById('event-log').innerHTML = '';
-        }
-
-        // ======================
-        // COMPONENT INSTANCE
-        // ======================
-        let instance = null;
-
-        function createInstance() {
-            const host = document.getElementById('component-host');
-            host.innerHTML = `
-                <div id="asset-list-container">
-                <div class="asset-list-panel">
-                    <div class="panel-header">
-                        <h2 class="panel-title">Asset List</h2>
-                        <button class="refresh-btn" title="Refresh">↻</button>
+                <!-- Table Pane -->
+                <div class="table-pane">
+                    <div class="selected-node-info">
+                        <span class="node-path">Select a location from the tree</span>
+                        <span class="node-count"></span>
                     </div>
 
                     <div class="toolbar">
@@ -235,248 +80,554 @@
                         </div>
                     </div>
 
-                    <div class="panel-body">
-                        <div class="table-container"></div>
-                    </div>
-
-                    <div class="panel-footer">
-                        <div class="legend">
-                            <span class="legend-item"><span class="dot normal"></span> Normal</span>
-                            <span class="legend-item"><span class="dot warning"></span> Warning</span>
-                            <span class="legend-item"><span class="dot critical"></span> Critical</span>
-                        </div>
-                        <div class="asset-count">
-                            <span class="count-label">Total:</span>
-                            <span class="count-value">0</span>
-                        </div>
-                    </div>
+                    <div class="table-container"></div>
                 </div>
+            </div>
+
+            <div class="panel-footer">
+                <div class="legend">
+                    <span class="legend-item"><span class="dot normal"></span> Normal</span>
+                    <span class="legend-item"><span class="dot warning"></span> Warning</span>
+                    <span class="legend-item"><span class="dot critical"></span> Critical</span>
                 </div>
-            `;
+                <div class="asset-count">
+                    <span class="count-label">Total:</span>
+                    <span class="count-value">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            instance = {
-                id: 'preview-asset-list',
-                appendElement: host.querySelector('.asset-list-panel'),
-                _allAssets: [],
-                _searchTerm: '',
-                _typeFilter: 'all',
-                _statusFilter: 'all',
-                _tableInstance: null
-            };
+    <!-- Mock Data -->
+    <script>
+        const MOCK_DATA = {
+            hierarchy: {
+                title: "ECO 자산 관리",
+                items: [
+                    {
+                        id: "building-001",
+                        name: "본관",
+                        type: "building",
+                        status: "warning",
+                        children: [
+                            {
+                                id: "floor-001-01",
+                                name: "1층",
+                                type: "floor",
+                                status: "warning",
+                                children: [
+                                    { id: "room-001-01-01", name: "서버실 A", type: "room", status: "warning", assetCount: 6 },
+                                    { id: "room-001-01-02", name: "서버실 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            },
+                            {
+                                id: "floor-001-02",
+                                name: "2층",
+                                type: "floor",
+                                status: "normal",
+                                children: [
+                                    { id: "room-001-02-01", name: "통신실 A", type: "room", status: "normal", assetCount: 6 },
+                                    { id: "room-001-02-02", name: "통신실 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: "building-002",
+                        name: "별관 A",
+                        type: "building",
+                        status: "critical",
+                        children: [
+                            {
+                                id: "floor-002-01",
+                                name: "1층",
+                                type: "floor",
+                                status: "critical",
+                                children: [
+                                    { id: "room-002-01-01", name: "데이터센터 A", type: "room", status: "critical", assetCount: 6 },
+                                    { id: "room-002-01-02", name: "데이터센터 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            },
+                            {
+                                id: "floor-002-02",
+                                name: "2층",
+                                type: "floor",
+                                status: "normal",
+                                children: [
+                                    { id: "room-002-02-01", name: "네트워크실 A", type: "room", status: "normal", assetCount: 6 },
+                                    { id: "room-002-02-02", name: "네트워크실 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        id: "building-003",
+                        name: "별관 B",
+                        type: "building",
+                        status: "normal",
+                        children: [
+                            {
+                                id: "floor-003-01",
+                                name: "1층",
+                                type: "floor",
+                                status: "normal",
+                                children: [
+                                    { id: "room-003-01-01", name: "전산실 A", type: "room", status: "normal", assetCount: 6 },
+                                    { id: "room-003-01-02", name: "전산실 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            },
+                            {
+                                id: "floor-003-02",
+                                name: "2층",
+                                type: "floor",
+                                status: "warning",
+                                children: [
+                                    { id: "room-003-02-01", name: "장비실 A", type: "room", status: "warning", assetCount: 6 },
+                                    { id: "room-003-02-02", name: "장비실 B", type: "room", status: "normal", assetCount: 6 }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                summary: { buildings: 3, floors: 6, rooms: 12, assets: 72 }
+            }
+        };
 
-            initComponent.call(instance);
-            log('[AssetList] Instance created');
+        // 방별 자산 생성 (room 전용)
+        function generateRoomAssets(roomId) {
+            const statuses = ['normal', 'normal', 'normal', 'warning', 'critical'];
+            const randomStatus = () => statuses[Math.floor(Math.random() * statuses.length)];
+            const roomSuffix = roomId.replace('room-', '').replace(/-/g, '');
+
+            return [
+                { id: `ups-${roomSuffix}`, type: 'ups', name: `UPS ${roomSuffix}`, roomId, status: randomStatus() },
+                { id: `pdu-${roomSuffix}-1`, type: 'pdu', name: `PDU ${roomSuffix}-1`, roomId, status: randomStatus() },
+                { id: `pdu-${roomSuffix}-2`, type: 'pdu', name: `PDU ${roomSuffix}-2`, roomId, status: randomStatus() },
+                { id: `crac-${roomSuffix}`, type: 'crac', name: `CRAC ${roomSuffix}`, roomId, status: randomStatus() },
+                { id: `sensor-${roomSuffix}-1`, type: 'sensor', name: `Sensor ${roomSuffix}-1`, roomId, status: randomStatus() },
+                { id: `sensor-${roomSuffix}-2`, type: 'sensor', name: `Sensor ${roomSuffix}-2`, roomId, status: randomStatus() }
+            ];
         }
 
-        // ======================
-        // COMPONENT LOGIC (register.js 구조)
-        // ======================
-        function initComponent() {
-            const { subscribe } = GlobalDataPublisher;
-            const { bindEvents } = Wkit;
+        // 노드별 자산 조회 (building/floor/room 지원)
+        function getAssetsForNode(nodeId) {
+            const node = findNodeInHierarchy(MOCK_DATA.hierarchy.items, nodeId);
+            if (!node) return [];
 
-            // 1. Subscriptions
-            this.subscriptions = { 'assets': ['renderTable'] };
+            // room: 해당 방의 자산만
+            if (nodeId.startsWith('room-')) {
+                return generateRoomAssets(nodeId);
+            }
 
-            // 2. Table Config
-            this.tableConfig = {
+            // floor: 하위 모든 방의 자산
+            if (nodeId.startsWith('floor-')) {
+                let assets = [];
+                (node.children || []).forEach(room => {
+                    assets = assets.concat(generateRoomAssets(room.id));
+                });
+                return assets;
+            }
+
+            // building: 하위 모든 층/방의 자산
+            if (nodeId.startsWith('building-')) {
+                let assets = [];
+                (node.children || []).forEach(floor => {
+                    (floor.children || []).forEach(room => {
+                        assets = assets.concat(generateRoomAssets(room.id));
+                    });
+                });
+                return assets;
+            }
+
+            return [];
+        }
+
+        // 계층에서 노드 찾기
+        function findNodeInHierarchy(items, targetId) {
+            for (const item of items || []) {
+                if (item.id === targetId) return item;
+                if (item.children) {
+                    const found = findNodeInHierarchy(item.children, targetId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+    </script>
+
+    <!-- Render Test -->
+    <script>
+        const container = document.getElementById('asset-list-container');
+        const panel = container.querySelector('.asset-list-panel');
+
+        // State
+        let treeData = null;
+        let expandedNodes = new Set();
+        let selectedNodeId = null;
+        let allAssets = [];
+        let searchTerm = '';
+        let treeSearchTerm = '';
+        let typeFilter = 'all';
+        let statusFilter = 'all';
+        let tableInstance = null;
+
+        // ==================
+        // TREE RENDERING
+        // ==================
+
+        function renderTree(data) {
+            treeData = data.items;
+            const titleEl = panel.querySelector('.tree-title');
+            if (titleEl) titleEl.textContent = data.title;
+
+            renderTreeNodes(treeData, treeSearchTerm);
+            console.log('[Preview] Tree rendered:', data.summary);
+        }
+
+        function renderTreeNodes(items, searchTerm = '') {
+            const rootEl = panel.querySelector('.tree-root');
+            if (!rootEl) return;
+
+            rootEl.innerHTML = '';
+            const normalized = searchTerm.toLowerCase().trim();
+
+            items.forEach(item => {
+                const nodeEl = createTreeNode(item, normalized);
+                if (nodeEl) rootEl.appendChild(nodeEl);
+            });
+        }
+
+        function createTreeNode(item, searchTerm) {
+            const { id, name, type, status, children = [], assetCount } = item;
+            const hasChildren = children.length > 0;
+            const isExpanded = expandedNodes.has(id);
+            const isSelected = selectedNodeId === id;
+
+            const matchesSearch = !searchTerm || name.toLowerCase().includes(searchTerm);
+            const hasMatchingDescendants = hasChildren && checkDescendants(children, searchTerm);
+
+            if (searchTerm && !matchesSearch && !hasMatchingDescendants) return null;
+
+            const li = document.createElement('li');
+            li.className = 'tree-node';
+            li.dataset.nodeId = id;
+            li.dataset.nodeType = type;
+
+            const content = document.createElement('div');
+            content.className = 'node-content';
+            if (isSelected) content.classList.add('selected');
+
+            const toggle = document.createElement('span');
+            toggle.className = 'node-toggle';
+            if (hasChildren) {
+                toggle.textContent = '▶';
+                if (isExpanded) toggle.classList.add('expanded');
+            } else {
+                toggle.classList.add('leaf');
+            }
+
+            const icon = document.createElement('span');
+            icon.className = 'node-icon';
+            icon.dataset.type = type;
+
+            const label = document.createElement('span');
+            label.className = 'node-label';
+            label.textContent = name;
+
+            content.appendChild(toggle);
+            content.appendChild(icon);
+            content.appendChild(label);
+
+            if (type === 'room' && assetCount !== undefined) {
+                const count = document.createElement('span');
+                count.className = 'node-asset-count';
+                count.textContent = `(${assetCount})`;
+                content.appendChild(count);
+            }
+
+            const statusDot = document.createElement('span');
+            statusDot.className = `node-status ${status}`;
+            content.appendChild(statusDot);
+
+            li.appendChild(content);
+
+            if (hasChildren) {
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'node-children';
+                if (isExpanded || (searchTerm && hasMatchingDescendants)) {
+                    childrenUl.classList.add('expanded');
+                }
+
+                children.forEach(child => {
+                    const childEl = createTreeNode(child, searchTerm);
+                    if (childEl) childrenUl.appendChild(childEl);
+                });
+
+                li.appendChild(childrenUl);
+            }
+
+            return li;
+        }
+
+        function checkDescendants(children, searchTerm) {
+            if (!searchTerm) return false;
+            return children.some(child => {
+                if (child.name.toLowerCase().includes(searchTerm)) return true;
+                return child.children && checkDescendants(child.children, searchTerm);
+            });
+        }
+
+        // ==================
+        // NODE ACTIONS
+        // ==================
+
+        function toggleNode(nodeId) {
+            if (expandedNodes.has(nodeId)) {
+                expandedNodes.delete(nodeId);
+            } else {
+                expandedNodes.add(nodeId);
+            }
+            updateNodeVisuals(nodeId);
+        }
+
+        function selectNode(nodeId) {
+            const prev = panel.querySelector('.node-content.selected');
+            if (prev) prev.classList.remove('selected');
+
+            selectedNodeId = nodeId;
+
+            const nodeEl = panel.querySelector(`[data-node-id="${nodeId}"] > .node-content`);
+            if (nodeEl) nodeEl.classList.add('selected');
+
+            // 노드 경로 찾기
+            const nodePath = getNodePath(MOCK_DATA.hierarchy.items, nodeId);
+            const assets = getAssetsForNode(nodeId);
+
+            renderTable({ nodePath, assets });
+            console.log('[Preview] Node selected:', nodeId);
+        }
+
+        function getNodePath(items, targetId, path = []) {
+            for (const item of items || []) {
+                const currentPath = [...path, item.name];
+                if (item.id === targetId) return currentPath.join(' > ');
+                if (item.children) {
+                    const found = getNodePath(item.children, targetId, currentPath);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function expandAll() {
+            collectAllNodeIds(treeData);
+            renderTreeNodes(treeData, treeSearchTerm);
+        }
+
+        function collapseAll() {
+            expandedNodes.clear();
+            renderTreeNodes(treeData, treeSearchTerm);
+        }
+
+        function collectAllNodeIds(items) {
+            if (!items) return;
+            items.forEach(item => {
+                if (item.children && item.children.length > 0) {
+                    expandedNodes.add(item.id);
+                    collectAllNodeIds(item.children);
+                }
+            });
+        }
+
+        function updateNodeVisuals(nodeId) {
+            const nodeEl = panel.querySelector(`[data-node-id="${nodeId}"]`);
+            if (!nodeEl) return;
+
+            const toggle = nodeEl.querySelector(':scope > .node-content > .node-toggle');
+            const children = nodeEl.querySelector(':scope > .node-children');
+            const isExpanded = expandedNodes.has(nodeId);
+
+            if (toggle) toggle.classList.toggle('expanded', isExpanded);
+            if (children) children.classList.toggle('expanded', isExpanded);
+        }
+
+        // ==================
+        // TABLE RENDERING
+        // ==================
+
+        function renderTable(data) {
+            const { nodePath, assets = [] } = data;
+
+            const pathEl = panel.querySelector('.node-path');
+            const countEl = panel.querySelector('.selected-node-info .node-count');
+            if (pathEl) pathEl.textContent = nodePath || '전체 자산';
+            if (countEl) countEl.textContent = `${assets.length}개`;
+
+            allAssets = assets;
+            applyFilters();
+
+            console.log('[Preview] Table rendered:', assets.length, 'assets');
+        }
+
+        function applyFilters() {
+            const search = searchTerm.toLowerCase();
+
+            const filtered = allAssets.filter(asset => {
+                const matchesSearch = !search ||
+                    asset.name.toLowerCase().includes(search) ||
+                    asset.id.toLowerCase().includes(search);
+                const matchesType = typeFilter === 'all' || asset.type === typeFilter;
+                const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
+                return matchesSearch && matchesType && matchesStatus;
+            });
+
+            if (tableInstance) {
+                tableInstance.setData(filtered);
+            }
+
+            const countEl = panel.querySelector('.count-value');
+            if (countEl) countEl.textContent = filtered.length;
+        }
+
+        // ==================
+        // TABLE INIT
+        // ==================
+
+        function initTable() {
+            const container = panel.querySelector('.table-container');
+            if (!container) return;
+
+            container.id = 'asset-table';
+
+            tableInstance = new Tabulator('#asset-table', {
                 layout: 'fitColumns',
-                height: '100%',
-                placeholder: 'No assets found',
+                height: 350,
+                placeholder: 'Select a location from the tree',
                 selectable: 1,
                 columns: [
                     { title: 'ID', field: 'id', widthGrow: 1, headerSort: true },
                     { title: 'Name', field: 'name', widthGrow: 2, headerSort: true },
-                    { title: 'Type', field: 'type', widthGrow: 1, headerSort: true, formatter: typeFormatter },
-                    { title: 'Zone', field: 'zone', widthGrow: 1, headerSort: true },
-                    { title: 'Status', field: 'status', widthGrow: 1, headerSort: true, formatter: statusFormatter }
+                    {
+                        title: 'Type', field: 'type', widthGrow: 1, headerSort: true,
+                        formatter: cell => `<span class="type-badge" data-type="${cell.getValue()}">${cell.getValue().toUpperCase()}</span>`
+                    },
+                    {
+                        title: 'Status', field: 'status', widthGrow: 1, headerSort: true,
+                        formatter: cell => `<span class="status-badge" data-status="${cell.getValue()}">${cell.getValue()}</span>`
+                    }
                 ]
-            };
-
-            // 3. Bind methods
-            this.renderTable = renderTable.bind(this);
-            this.search = search.bind(this);
-            this.filterByType = filterByType.bind(this);
-            this.filterByStatus = filterByStatus.bind(this);
-
-            // 4. Subscribe
-            fx.go(
-                Object.entries(this.subscriptions),
-                fx.each(([topic, fnList]) =>
-                    fx.each(fn => this[fn] && subscribe(topic, this, this[fn]), fnList)
-                )
-            );
-
-            // 5. Internal handlers
-            this._internalHandlers = {};
-            setupInternalHandlers.call(this);
-
-            // 6. External events
-            this.customEvents = { click: { '.refresh-btn': '@refreshClicked' } };
-            bindEvents(this, this.customEvents);
-
-            // 7. Init table (DOM 렌더링 완료 후 실행)
-            // setTimeout(() => , 0);
-            initTable.call(this)
-
-            log('[AssetList] Initialized');
-        }
-
-        function setupInternalHandlers() {
-            const root = this.appendElement;
-
-            this._internalHandlers.searchInput = (e) => {
-                this.search(e.target.value);
-                log(`[Internal] Search: "${e.target.value}"`);
-            };
-
-            this._internalHandlers.typeChange = (e) => {
-                this.filterByType(e.target.value);
-                log(`[Internal] Type filter: ${e.target.value}`);
-            };
-
-            this._internalHandlers.statusChange = (e) => {
-                this.filterByStatus(e.target.value);
-                log(`[Internal] Status filter: ${e.target.value}`);
-            };
-
-            root.querySelector('.search-input')?.addEventListener('input', this._internalHandlers.searchInput);
-            root.querySelector('.type-filter')?.addEventListener('change', this._internalHandlers.typeChange);
-            root.querySelector('.status-filter')?.addEventListener('change', this._internalHandlers.statusChange);
-        }
-
-        function typeFormatter(cell) {
-            const value = cell.getValue();
-            return `<span class="type-badge" data-type="${value}">${value.toUpperCase()}</span>`;
-        }
-
-        function statusFormatter(cell) {
-            const value = cell.getValue();
-            return `<span class="status-badge" data-status="${value}">${value}</span>`;
-        }
-
-        function initTable() {
-            const container = this.appendElement.querySelector('.table-container');
-            if (!container) return;
-
-            const uniqueId = `tabulator-${this.id}`;
-            container.id = uniqueId;
-
-            const ctx = this;
-
-            this._tableInstance = new Tabulator(`#${uniqueId}`, {
-                ...this.tableConfig,
-                height: 350
             });
 
-            // Tabulator 6.x: on() 메서드로 이벤트 등록
-            this._tableInstance.on('rowClick', (e, row) => {
-                const asset = row.getData();
-                onRowClick.call(ctx, asset);
+            tableInstance.on('rowClick', (e, row) => {
+                console.log('[Preview] Asset selected:', row.getData());
             });
         }
 
-        function renderTable({ response }) {
-            const { assets } = response.data;
-            this._allAssets = assets || [];
-            applyFilters.call(this);
-            updateCount.call(this);
-            log(`[renderTable] Loaded ${this._allAssets.length} assets`);
-        }
+        // ==================
+        // RESIZER
+        // ==================
 
-        function applyFilters() {
-            const searchTerm = this._searchTerm.toLowerCase();
-            const typeFilter = this._typeFilter;
-            const statusFilter = this._statusFilter;
+        function setupResizer() {
+            const resizer = panel.querySelector('.pane-resizer');
+            const treePane = panel.querySelector('.tree-pane');
+            if (!resizer || !treePane) return;
 
-            const filtered = this._allAssets.filter(asset => {
-                const matchesSearch = !searchTerm ||
-                    asset.name.toLowerCase().includes(searchTerm) ||
-                    asset.id.toLowerCase().includes(searchTerm);
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
 
-                const matchesType = typeFilter === 'all' || asset.type === typeFilter;
-                const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
-
-                return matchesSearch && matchesType && matchesStatus;
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = treePane.offsetWidth;
+                resizer.classList.add('dragging');
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                e.preventDefault();
             });
 
-            if (this._tableInstance) {
-                this._tableInstance.setData(filtered);
+            function onMouseMove(e) {
+                if (!isResizing) return;
+                const diff = e.clientX - startX;
+                const newWidth = Math.min(400, Math.max(200, startWidth + diff));
+                treePane.style.width = `${newWidth}px`;
             }
 
-            updateCount.call(this, filtered.length);
-        }
-
-        function updateCount(count) {
-            const countEl = this.appendElement.querySelector('.count-value');
-            if (countEl) {
-                countEl.textContent = count !== undefined ? count : this._allAssets.length;
+            function onMouseUp() {
+                isResizing = false;
+                resizer.classList.remove('dragging');
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
             }
         }
 
-        function search(term) {
-            this._searchTerm = term;
-            applyFilters.call(this);
-        }
+        // ==================
+        // EVENT HANDLERS
+        // ==================
 
-        function filterByType(type) {
-            this._typeFilter = type;
-            applyFilters.call(this);
-        }
+        function setupEventHandlers() {
+            // Tree click (event delegation)
+            panel.querySelector('.tree-container')?.addEventListener('click', (e) => {
+                const nodeContent = e.target.closest('.node-content');
+                if (!nodeContent) return;
 
-        function filterByStatus(status) {
-            this._statusFilter = status;
-            applyFilters.call(this);
-        }
+                const nodeEl = nodeContent.closest('.tree-node');
+                if (!nodeEl) return;
 
-        function onRowClick(asset) {
-            console.log(asset)
-            Weventbus.emit('@assetSelected', {
-                event: { asset },
-                targetInstance: this
+                const nodeId = nodeEl.dataset.nodeId;
+                const toggle = nodeContent.querySelector('.node-toggle');
+
+                if (e.target.closest('.node-toggle') && !toggle.classList.contains('leaf')) {
+                    toggleNode(nodeId);
+                } else {
+                    selectNode(nodeId);
+                }
+            });
+
+            // Tree search
+            panel.querySelector('.tree-search-input')?.addEventListener('input', (e) => {
+                treeSearchTerm = e.target.value;
+                if (treeData) renderTreeNodes(treeData, treeSearchTerm);
+            });
+
+            // Expand/Collapse buttons
+            panel.querySelector('.btn-expand-all')?.addEventListener('click', expandAll);
+            panel.querySelector('.btn-collapse-all')?.addEventListener('click', collapseAll);
+
+            // Table search
+            panel.querySelector('.search-input')?.addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                applyFilters();
+            });
+
+            // Type filter
+            panel.querySelector('.type-filter')?.addEventListener('change', (e) => {
+                typeFilter = e.target.value;
+                applyFilters();
+            });
+
+            // Status filter
+            panel.querySelector('.status-filter')?.addEventListener('change', (e) => {
+                statusFilter = e.target.value;
+                applyFilters();
+            });
+
+            // Refresh button
+            panel.querySelector('.refresh-btn')?.addEventListener('click', () => {
+                console.log('[Preview] Refresh clicked');
+                renderTree(MOCK_DATA.hierarchy);
             });
         }
 
-        // ======================
-        // PREVIEW CONTROLS
-        // ======================
-        function loadData() {
-            if (!instance) createInstance();
-            // 실제 API 응답 구조: { response: { data: { assets: [...] } } }
-            setTimeout(() => {
-                instance.renderTable({ response: { data: { assets: [...mockAssets] } } });
-            })
-        }
+        // ==================
+        // INIT
+        // ==================
 
-        function addRandomAsset() {
-            if (!instance) {
-                log('[Warning] Create instance first', 'warn');
-                return;
-            }
-
-            const types = ['ups', 'pdu', 'crac', 'sensor'];
-            const statuses = ['normal', 'warning', 'critical'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const status = statuses[Math.floor(Math.random() * statuses.length)];
-            const id = `${type.toUpperCase()}-${String(Math.random()).slice(2, 5)}`;
-
-            const newAsset = {
-                id,
-                name: `New ${type.toUpperCase()} ${id.slice(-3)}`,
-                type,
-                zone: `Zone ${String.fromCharCode(65 + Math.floor(Math.random() * 3))}`,
-                status
-            };
-
-            instance._allAssets.push(newAsset);
-            applyFilters.call(instance);
-            log(`[Added] ${newAsset.id} (${newAsset.type}, ${newAsset.status})`);
-        }
-
-        // Initialize on load
         window.onload = () => {
-            createInstance();
-            loadData();
+            initTable();
+            setupResizer();
+            setupEventHandlers();
+            renderTree(MOCK_DATA.hierarchy);
         };
     </script>
 </body>

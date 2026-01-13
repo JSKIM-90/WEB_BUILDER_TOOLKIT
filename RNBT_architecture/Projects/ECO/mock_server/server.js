@@ -11,8 +11,184 @@ app.use(express.json());
 // UTILITY FUNCTIONS
 // ======================
 
-function getZone(index) {
-    return `Zone-${String.fromCharCode(65 + (index % 4))}`;
+function getRandomStatus() {
+    const rand = Math.random();
+    if (rand < 0.75) return 'normal';
+    if (rand < 0.92) return 'warning';
+    return 'critical';
+}
+
+function calculateAggregateStatus(items) {
+    if (!items || items.length === 0) return 'normal';
+    if (items.some(i => i.status === 'critical')) return 'critical';
+    if (items.some(i => i.status === 'warning')) return 'warning';
+    return 'normal';
+}
+
+// ======================
+// HIERARCHY DATA STRUCTURE
+// ======================
+
+const BUILDINGS = [
+    { id: 'building-001', name: '본관' },
+    { id: 'building-002', name: '별관 A' },
+    { id: 'building-003', name: '별관 B' }
+];
+
+const ROOM_NAMES = [
+    '서버실 A', '서버실 B', '네트워크실', '전산실',
+    '통신실', 'UPS실', '항온항습실', '모니터링실',
+    '백업실', '스토리지실', '개발실', '운영실'
+];
+
+// Hierarchy & Assets Cache
+let HIERARCHY_CACHE = null;
+let ASSETS_BY_ROOM = {};
+let ALL_ASSETS = [];
+
+// ======================
+// HIERARCHY DATA GENERATORS
+// ======================
+
+function generateHierarchy() {
+    const items = [];
+    let assetIndex = 0;
+    let roomIndex = 0;
+
+    BUILDINGS.forEach((building, bIdx) => {
+        const floors = [];
+
+        // 건물당 2개 층
+        for (let fIdx = 0; fIdx < 2; fIdx++) {
+            const floorNum = String(fIdx + 1).padStart(2, '0');
+            const floorId = `floor-${building.id.split('-')[1]}-${floorNum}`;
+            const rooms = [];
+
+            // 층당 2개 방
+            for (let rIdx = 0; rIdx < 2; rIdx++) {
+                const roomNum = String(rIdx + 1).padStart(2, '0');
+                const roomId = `room-${building.id.split('-')[1]}-${floorNum}-${roomNum}`;
+                const roomAssets = generateRoomAssets(roomId, assetIndex);
+                assetIndex += 6;
+
+                const roomStatus = calculateAggregateStatus(roomAssets);
+
+                // 방별 자산 저장
+                ASSETS_BY_ROOM[roomId] = roomAssets;
+                ALL_ASSETS = ALL_ASSETS.concat(roomAssets);
+
+                rooms.push({
+                    id: roomId,
+                    name: ROOM_NAMES[roomIndex % ROOM_NAMES.length],
+                    type: 'room',
+                    status: roomStatus,
+                    assetCount: roomAssets.length
+                });
+
+                roomIndex++;
+            }
+
+            const floorStatus = calculateAggregateStatus(rooms);
+
+            floors.push({
+                id: floorId,
+                name: `${fIdx + 1}층`,
+                type: 'floor',
+                status: floorStatus,
+                children: rooms
+            });
+        }
+
+        const buildingStatus = calculateAggregateStatus(floors);
+
+        items.push({
+            id: building.id,
+            name: building.name,
+            type: 'building',
+            status: buildingStatus,
+            children: floors
+        });
+    });
+
+    return items;
+}
+
+function generateRoomAssets(roomId, startIndex) {
+    const assets = [];
+
+    // 방당 6개 자산: UPS 1, PDU 2, CRAC 1, Sensor 2
+    const assetConfig = [
+        { type: 'ups', prefix: 'UPS' },
+        { type: 'pdu', prefix: 'PDU' },
+        { type: 'pdu', prefix: 'PDU' },
+        { type: 'crac', prefix: 'CRAC' },
+        { type: 'sensor', prefix: 'Sensor' },
+        { type: 'sensor', prefix: 'Sensor' }
+    ];
+
+    assetConfig.forEach((config, i) => {
+        const idx = startIndex + i + 1;
+        const status = getRandomStatus();
+        assets.push({
+            id: `${config.type}-${String(idx).padStart(3, '0')}`,
+            type: config.type,
+            name: `${config.prefix} ${String(idx).padStart(3, '0')}`,
+            roomId,
+            status
+        });
+    });
+
+    return assets;
+}
+
+function initializeHierarchy() {
+    ASSETS_BY_ROOM = {};
+    ALL_ASSETS = [];
+
+    const items = generateHierarchy();
+
+    HIERARCHY_CACHE = {
+        title: 'ECO 자산 관리',
+        items,
+        summary: {
+            buildings: 3,
+            floors: 6,
+            rooms: 12,
+            assets: ALL_ASSETS.length
+        }
+    };
+
+    console.log(`[Hierarchy] Initialized: ${HIERARCHY_CACHE.summary.buildings} buildings, ${HIERARCHY_CACHE.summary.floors} floors, ${HIERARCHY_CACHE.summary.rooms} rooms, ${HIERARCHY_CACHE.summary.assets} assets`);
+}
+
+function findNodeById(nodeId) {
+    if (!HIERARCHY_CACHE) return null;
+
+    for (const building of HIERARCHY_CACHE.items) {
+        if (building.id === nodeId) return building;
+        for (const floor of building.children || []) {
+            if (floor.id === nodeId) return floor;
+            for (const room of floor.children || []) {
+                if (room.id === nodeId) return room;
+            }
+        }
+    }
+    return null;
+}
+
+function getNodePath(nodeId) {
+    if (!HIERARCHY_CACHE) return '';
+
+    for (const building of HIERARCHY_CACHE.items) {
+        if (building.id === nodeId) return building.name;
+        for (const floor of building.children || []) {
+            if (floor.id === nodeId) return `${building.name} > ${floor.name}`;
+            for (const room of floor.children || []) {
+                if (room.id === nodeId) return `${building.name} > ${floor.name} > ${room.name}`;
+            }
+        }
+    }
+    return '';
 }
 
 // ======================
@@ -30,16 +206,19 @@ function generateUPS(id) {
 
     const modes = ['online', 'online', 'online', 'bypass', 'battery'];
 
+    // Find roomId from ALL_ASSETS
+    const asset = ALL_ASSETS.find(a => a.id === id);
+
     return {
         id,
         name: `UPS ${id.split('-')[1]}`,
-        zone: getZone(parseInt(id.split('-')[1] || '0')),
+        roomId: asset?.roomId || null,
         inputVoltage: Math.round((218 + Math.random() * 4) * 10) / 10,
         outputVoltage: Math.round((219 + Math.random() * 2) * 10) / 10,
         load,
         batteryLevel,
         batteryHealth,
-        runtime: Math.floor(batteryLevel * 0.6), // minutes
+        runtime: Math.floor(batteryLevel * 0.6),
         temperature: Math.round((28 + Math.random() * 10) * 10) / 10,
         status,
         mode: modes[Math.floor(Math.random() * modes.length)],
@@ -93,7 +272,7 @@ function generateUPSHistory(upsId, period = '24h') {
 // ======================
 
 function generatePDU(id) {
-    const totalPower = Math.round((8 + Math.random() * 10) * 10) / 10; // kW
+    const totalPower = Math.round((8 + Math.random() * 10) * 10) / 10;
     const voltage = 220;
     const totalCurrent = Math.round((totalPower * 1000 / voltage) * 10) / 10;
     const circuitCount = 24;
@@ -103,10 +282,12 @@ function generatePDU(id) {
     if (totalPower >= 18) status = 'critical';
     else if (totalPower >= 15) status = 'warning';
 
+    const asset = ALL_ASSETS.find(a => a.id === id);
+
     return {
         id,
         name: `PDU ${id.split('-')[1]}`,
-        zone: getZone(parseInt(id.split('-')[1] || '0')),
+        roomId: asset?.roomId || null,
         totalPower,
         totalCurrent,
         voltage,
@@ -201,10 +382,12 @@ function generateCRAC(id) {
     const modes = ['cooling', 'cooling', 'cooling', 'heating', 'dehumidifying', 'standby'];
     const compressorStates = ['running', 'running', 'running', 'idle', 'fault'];
 
+    const asset = ALL_ASSETS.find(a => a.id === id);
+
     return {
         id,
         name: `CRAC ${id.split('-')[1]}`,
-        zone: getZone(parseInt(id.split('-')[1] || '0')),
+        roomId: asset?.roomId || null,
         supplyTemp,
         returnTemp,
         setpoint: 18.0,
@@ -266,18 +449,18 @@ function generateCRACHistory(cracId, period = '24h') {
 function generateSensor(id) {
     const temperature = Math.round((20 + Math.random() * 10) * 10) / 10;
     const humidity = Math.round((35 + Math.random() * 30) * 10) / 10;
-
-    // Calculate dewpoint (simplified formula)
     const dewpoint = Math.round((temperature - ((100 - humidity) / 5)) * 10) / 10;
 
     let status = 'normal';
     if (temperature >= 32 || humidity < 30 || humidity > 70) status = 'critical';
     else if (temperature >= 28 || humidity < 40 || humidity > 60) status = 'warning';
 
+    const asset = ALL_ASSETS.find(a => a.id === id);
+
     return {
         id,
         name: `Sensor ${id.split('-')[1]}`,
-        zone: getZone(parseInt(id.split('-')[1] || '0')),
+        roomId: asset?.roomId || null,
         temperature,
         humidity,
         dewpoint,
@@ -322,45 +505,8 @@ function generateSensorHistory(sensorId, period = '24h') {
 }
 
 // ======================
-// ASSET DATA
+// SUMMARY GENERATOR
 // ======================
-
-const ZONES = ['Zone-A', 'Zone-B', 'Zone-C', 'Zone-D'];
-
-const ASSETS = [
-    // UPS (4개)
-    ...Array.from({ length: 4 }, (_, i) => ({
-        id: `ups-${String(i + 1).padStart(3, '0')}`,
-        type: 'ups',
-        name: `UPS ${String.fromCharCode(65 + i)}`,
-        zone: ZONES[i],
-        status: ['normal', 'normal', 'normal', 'warning'][i]
-    })),
-    // PDU (8개)
-    ...Array.from({ length: 8 }, (_, i) => ({
-        id: `pdu-${String(i + 1).padStart(3, '0')}`,
-        type: 'pdu',
-        name: `PDU ${String.fromCharCode(65 + Math.floor(i / 2))}-${(i % 2) + 1}`,
-        zone: ZONES[i % 4],
-        status: ['normal', 'normal', 'warning', 'normal', 'normal', 'normal', 'normal', 'critical'][i]
-    })),
-    // CRAC (4개)
-    ...Array.from({ length: 4 }, (_, i) => ({
-        id: `crac-${String(i + 1).padStart(3, '0')}`,
-        type: 'crac',
-        name: `CRAC ${String.fromCharCode(65 + i)}`,
-        zone: ZONES[i],
-        status: 'normal'
-    })),
-    // Sensors (8개)
-    ...Array.from({ length: 8 }, (_, i) => ({
-        id: `sensor-${String(i + 1).padStart(3, '0')}`,
-        type: 'sensor',
-        name: `Sensor ${String.fromCharCode(65 + Math.floor(i / 2))}-${(i % 2) + 1}`,
-        zone: ZONES[i % 4],
-        status: ['normal', 'normal', 'normal', 'warning', 'normal', 'normal', 'normal', 'normal'][i]
-    }))
-];
 
 function generateAssetsSummary(assets) {
     const byType = {};
@@ -379,32 +525,100 @@ function generateAssetsSummary(assets) {
 }
 
 // ======================
-// API ENDPOINTS - Assets
+// API ENDPOINTS - Hierarchy (NEW)
+// ======================
+
+app.get('/api/hierarchy', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+    console.log(`[${new Date().toISOString()}] GET /api/hierarchy`);
+    res.json({ data: HIERARCHY_CACHE });
+});
+
+app.get('/api/hierarchy/:nodeId/assets', (req, res) => {
+    const { nodeId } = req.params;
+
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+
+    let assets = [];
+    let nodeName = '';
+    let nodeType = '';
+
+    if (nodeId.startsWith('room-')) {
+        assets = ASSETS_BY_ROOM[nodeId] || [];
+        const room = findNodeById(nodeId);
+        nodeName = room?.name || nodeId;
+        nodeType = 'room';
+    } else if (nodeId.startsWith('floor-')) {
+        const floor = findNodeById(nodeId);
+        nodeName = floor?.name || nodeId;
+        nodeType = 'floor';
+        (floor?.children || []).forEach(room => {
+            assets = assets.concat(ASSETS_BY_ROOM[room.id] || []);
+        });
+    } else if (nodeId.startsWith('building-')) {
+        const building = findNodeById(nodeId);
+        nodeName = building?.name || nodeId;
+        nodeType = 'building';
+        (building?.children || []).forEach(floor => {
+            (floor.children || []).forEach(room => {
+                assets = assets.concat(ASSETS_BY_ROOM[room.id] || []);
+            });
+        });
+    }
+
+    const nodePath = getNodePath(nodeId);
+    const summary = generateAssetsSummary(assets);
+
+    console.log(`[${new Date().toISOString()}] GET /api/hierarchy/${nodeId}/assets - ${assets.length} assets`);
+
+    res.json({
+        data: {
+            nodeId,
+            nodeName,
+            nodePath,
+            nodeType,
+            assets,
+            summary
+        }
+    });
+});
+
+// ======================
+// API ENDPOINTS - Assets (Updated)
 // ======================
 
 app.get('/api/assets/summary', (req, res) => {
-    const summary = generateAssetsSummary(ASSETS);
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+    const summary = generateAssetsSummary(ALL_ASSETS);
     console.log(`[${new Date().toISOString()}] GET /api/assets/summary`);
     res.json({ data: { summary } });
 });
 
 app.get('/api/assets', (req, res) => {
-    const { type } = req.query;
-    let filteredAssets = ASSETS;
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+
+    const { type, roomId } = req.query;
+    let filteredAssets = [...ALL_ASSETS];
 
     if (type) {
         const types = type.split(',');
-        filteredAssets = ASSETS.filter(asset => types.includes(asset.type));
+        filteredAssets = filteredAssets.filter(asset => types.includes(asset.type));
+    }
+
+    if (roomId) {
+        filteredAssets = filteredAssets.filter(asset => asset.roomId === roomId);
     }
 
     const summary = generateAssetsSummary(filteredAssets);
-    console.log(`[${new Date().toISOString()}] GET /api/assets${type ? `?type=${type}` : ''} - ${filteredAssets.length} assets`);
+    console.log(`[${new Date().toISOString()}] GET /api/assets - ${filteredAssets.length} assets`);
     res.json({ data: { assets: filteredAssets, summary } });
 });
 
 app.get('/api/asset/:id', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+
     const { id } = req.params;
-    const asset = ASSETS.find(a => a.id === id);
+    const asset = ALL_ASSETS.find(a => a.id === id);
 
     console.log(`[${new Date().toISOString()}] GET /api/asset/${id} - ${asset ? 'found' : 'not found'}`);
 
@@ -415,6 +629,8 @@ app.get('/api/asset/:id', (req, res) => {
 });
 
 app.post('/api/assets/validate', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
+
     const { ids } = req.body;
 
     if (!ids || !Array.isArray(ids)) {
@@ -425,7 +641,7 @@ app.post('/api/assets/validate', (req, res) => {
     const invalidIds = [];
 
     ids.forEach(id => {
-        if (ASSETS.find(a => a.id === id)) {
+        if (ALL_ASSETS.find(a => a.id === id)) {
             validIds.push(id);
         } else {
             invalidIds.push(id);
@@ -441,6 +657,7 @@ app.post('/api/assets/validate', (req, res) => {
 // ======================
 
 app.get('/api/ups/:id', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
     const { id } = req.params;
     const ups = generateUPS(id);
     console.log(`[${new Date().toISOString()}] GET /api/ups/${id}`);
@@ -460,6 +677,7 @@ app.get('/api/ups/:id/history', (req, res) => {
 // ======================
 
 app.get('/api/pdu/:id', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
     const { id } = req.params;
     const pdu = generatePDU(id);
     console.log(`[${new Date().toISOString()}] GET /api/pdu/${id}`);
@@ -486,6 +704,7 @@ app.get('/api/pdu/:id/history', (req, res) => {
 // ======================
 
 app.get('/api/crac/:id', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
     const { id } = req.params;
     const crac = generateCRAC(id);
     console.log(`[${new Date().toISOString()}] GET /api/crac/${id}`);
@@ -505,6 +724,7 @@ app.get('/api/crac/:id/history', (req, res) => {
 // ======================
 
 app.get('/api/sensor/:id', (req, res) => {
+    if (!HIERARCHY_CACHE) initializeHierarchy();
     const { id } = req.params;
     const sensor = generateSensor(id);
     console.log(`[${new Date().toISOString()}] GET /api/sensor/${id}`);
@@ -523,26 +743,37 @@ app.get('/api/sensor/:id/history', (req, res) => {
 // SERVER START
 // ======================
 
+// Initialize hierarchy on startup
+initializeHierarchy();
+
 app.listen(PORT, () => {
     console.log(`\n========================================`);
     console.log(`  ECO Mock Server`);
     console.log(`  Environmental Control & Operations`);
     console.log(`  Running on http://localhost:${PORT}`);
     console.log(`========================================`);
+    console.log(`\nHierarchy Structure:`);
+    console.log(`  Buildings: ${HIERARCHY_CACHE.summary.buildings}`);
+    console.log(`  Floors: ${HIERARCHY_CACHE.summary.floors}`);
+    console.log(`  Rooms: ${HIERARCHY_CACHE.summary.rooms}`);
+    console.log(`  Assets: ${HIERARCHY_CACHE.summary.assets}`);
     console.log(`\nAvailable endpoints:`);
-    console.log(`  GET /api/assets               - All assets`);
-    console.log(`  GET /api/assets?type=ups      - Filter by type`);
-    console.log(`  GET /api/assets/summary       - Summary only`);
-    console.log(`  GET /api/asset/:id            - Single asset`);
-    console.log(`  POST /api/assets/validate     - Batch validate`);
-    console.log(`  GET /api/ups/:id              - UPS status`);
-    console.log(`  GET /api/ups/:id/history      - UPS history`);
-    console.log(`  GET /api/pdu/:id              - PDU status`);
-    console.log(`  GET /api/pdu/:id/circuits     - PDU circuits`);
-    console.log(`  GET /api/pdu/:id/history      - PDU history`);
-    console.log(`  GET /api/crac/:id             - CRAC status`);
-    console.log(`  GET /api/crac/:id/history     - CRAC history`);
-    console.log(`  GET /api/sensor/:id           - Sensor status`);
-    console.log(`  GET /api/sensor/:id/history   - Sensor history`);
+    console.log(`  GET /api/hierarchy                - Hierarchy tree`);
+    console.log(`  GET /api/hierarchy/:nodeId/assets - Assets by node`);
+    console.log(`  GET /api/assets                   - All assets`);
+    console.log(`  GET /api/assets?type=ups          - Filter by type`);
+    console.log(`  GET /api/assets?roomId=room-xxx   - Filter by room`);
+    console.log(`  GET /api/assets/summary           - Summary only`);
+    console.log(`  GET /api/asset/:id                - Single asset`);
+    console.log(`  POST /api/assets/validate         - Batch validate`);
+    console.log(`  GET /api/ups/:id                  - UPS status`);
+    console.log(`  GET /api/ups/:id/history          - UPS history`);
+    console.log(`  GET /api/pdu/:id                  - PDU status`);
+    console.log(`  GET /api/pdu/:id/circuits         - PDU circuits`);
+    console.log(`  GET /api/pdu/:id/history          - PDU history`);
+    console.log(`  GET /api/crac/:id                 - CRAC status`);
+    console.log(`  GET /api/crac/:id/history         - CRAC history`);
+    console.log(`  GET /api/sensor/:id               - Sensor status`);
+    console.log(`  GET /api/sensor/:id/history       - Sensor history`);
     console.log(`\n`);
 });

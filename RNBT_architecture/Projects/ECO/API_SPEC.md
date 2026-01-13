@@ -1,8 +1,25 @@
 # ECO API 명세
 
-**Base URL**: `http://localhost:3004`
+**Base URL**: `http://localhost:4004`
 
 **프로젝트 설명**: 데이터센터 전력/냉방 장비 모니터링 대시보드
+
+---
+
+## 계층 구조
+
+```
+건물 (Building)
+  └── 층 (Floor)
+        └── 방 (Room)
+              └── 자산 (Asset: UPS, PDU, CRAC, Sensor)
+```
+
+**데이터 규모**:
+- 건물: 3개 (본관, 별관 A, 별관 B)
+- 층: 6개 (건물당 2개)
+- 방: 12개 (층당 2개)
+- 자산: 72개 (방당 6개: UPS 1, PDU 2, CRAC 1, Sensor 2)
 
 ---
 
@@ -10,7 +27,9 @@
 
 | API | 호출 시점 | 컴포넌트 | 기능 |
 |-----|----------|----------|------|
-| `GET /api/assets` | 페이지 로드 | AssetList | 전체 자산 목록 조회 |
+| `GET /api/hierarchy` | 페이지 로드 | AssetList | 계층 트리 렌더링 |
+| `GET /api/hierarchy/:nodeId/assets` | 트리 노드 클릭 | AssetList | 선택 노드의 자산 목록 표시 |
+| `GET /api/assets` | 새로고침 | AssetList | 전체 자산 목록 조회 |
 | `GET /api/ups/:id` | 행 클릭 / 3D 클릭 | UPS | UPS 현재 상태 표시 |
 | `GET /api/ups/:id/history` | 행 클릭 / 3D 클릭 | UPS | 부하/배터리 차트 렌더링 |
 | `GET /api/pdu/:id` | 행 클릭 / 3D 클릭 | PDU | PDU 현재 상태 표시 |
@@ -23,34 +42,156 @@
 
 ---
 
-## 1. 전체 자산 조회
+## 1. 계층 구조 조회 (NEW)
 
 ### Request
 
 ```
-GET /api/assets
+GET /api/hierarchy
 ```
 
 ### Response
 
 ```json
 {
-  "data": [
-    {
-      "id": "ups-001",
-      "type": "ups",
-      "name": "UPS A-1",
-      "zone": "Zone-A",
-      "status": "normal"
-    },
-    {
-      "id": "pdu-001",
-      "type": "pdu",
-      "name": "PDU A-1",
-      "zone": "Zone-A",
-      "status": "warning"
+  "data": {
+    "title": "ECO 자산 관리",
+    "items": [
+      {
+        "id": "building-001",
+        "name": "본관",
+        "type": "building",
+        "status": "normal",
+        "children": [
+          {
+            "id": "floor-001-01",
+            "name": "1층",
+            "type": "floor",
+            "status": "warning",
+            "children": [
+              {
+                "id": "room-001-01-01",
+                "name": "서버실 A",
+                "type": "room",
+                "status": "warning",
+                "assetCount": 6
+              },
+              {
+                "id": "room-001-01-02",
+                "name": "서버실 B",
+                "type": "room",
+                "status": "normal",
+                "assetCount": 6
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "buildings": 3,
+      "floors": 6,
+      "rooms": 12,
+      "assets": 72
     }
-  ]
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | 노드 ID (`building-xxx`, `floor-xxx-xx`, `room-xxx-xx-xx`) |
+| name | string | 노드 이름 |
+| type | string | 노드 타입 (`building` \| `floor` \| `room`) |
+| status | string | 집계 상태 (하위 노드 중 가장 심각한 상태) |
+| children | array | 하위 노드 목록 |
+| assetCount | number | 자산 수 (room 타입만) |
+
+---
+
+## 2. 노드별 자산 조회 (NEW)
+
+### Request
+
+```
+GET /api/hierarchy/:nodeId/assets
+```
+
+**Parameters**:
+- `nodeId`: 노드 ID (예: `building-001`, `floor-001-01`, `room-001-01-01`)
+
+### Response
+
+```json
+{
+  "data": {
+    "nodeId": "room-001-01-01",
+    "nodeName": "서버실 A",
+    "nodePath": "본관 > 1층 > 서버실 A",
+    "nodeType": "room",
+    "assets": [
+      {
+        "id": "ups-001",
+        "type": "ups",
+        "name": "UPS 001",
+        "roomId": "room-001-01-01",
+        "status": "normal"
+      }
+    ],
+    "summary": {
+      "total": 6,
+      "byType": { "ups": 1, "pdu": 2, "crac": 1, "sensor": 2 },
+      "byStatus": { "normal": 5, "warning": 1, "critical": 0 }
+    }
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| nodeId | string | 노드 ID |
+| nodeName | string | 노드 이름 |
+| nodePath | string | 경로 (breadcrumb) |
+| nodeType | string | 노드 타입 |
+| assets | array | 자산 목록 |
+| summary | object | 자산 요약 |
+
+---
+
+## 3. 전체 자산 조회
+
+### Request
+
+```
+GET /api/assets
+GET /api/assets?type=ups
+GET /api/assets?roomId=room-001-01-01
+```
+
+### Response
+
+```json
+{
+  "data": {
+    "assets": [
+      {
+        "id": "ups-001",
+        "type": "ups",
+        "name": "UPS 001",
+        "roomId": "room-001-01-01",
+        "status": "normal"
+      }
+    ],
+    "summary": {
+      "total": 72,
+      "byType": { "ups": 12, "pdu": 24, "crac": 12, "sensor": 24 },
+      "byStatus": { "normal": 54, "warning": 13, "critical": 5 }
+    }
+  }
 }
 ```
 
@@ -61,12 +202,12 @@ GET /api/assets
 | id | string | 자산 ID |
 | type | string | 자산 타입 (`ups` \| `pdu` \| `crac` \| `sensor`) |
 | name | string | 자산 이름 |
-| zone | string | 존 (Zone-A ~ Zone-D) |
+| roomId | string | 소속 방 ID |
 | status | string | 상태 (`normal` \| `warning` \| `critical`) |
 
 ---
 
-## 2. UPS 현재 상태 조회
+## 4. UPS 현재 상태 조회
 
 ### Request
 
@@ -80,8 +221,8 @@ GET /api/ups/:id
 {
   "data": {
     "id": "ups-001",
-    "name": "UPS A-1",
-    "zone": "Zone-A",
+    "name": "UPS 001",
+    "roomId": "room-001-01-01",
     "inputVoltage": 220.5,
     "outputVoltage": 220.0,
     "load": 65.2,
@@ -108,7 +249,7 @@ GET /api/ups/:id
 |-------|------|-------------|
 | id | string | UPS ID |
 | name | string | UPS 이름 |
-| zone | string | 존 (Zone-A ~ Zone-D) |
+| roomId | string | 소속 방 ID |
 | inputVoltage | number | 입력 전압 (V) |
 | outputVoltage | number | 출력 전압 (V) |
 | load | number | 부하율 (%) |
@@ -129,12 +270,13 @@ otherwise                           → status: "normal"
 
 ---
 
-## 3. UPS 히스토리 조회
+## 5. UPS 히스토리 조회
 
 ### Request
 
 ```
 GET /api/ups/:id/history
+GET /api/ups/:id/history?period=7d
 ```
 
 ### Response
@@ -157,7 +299,7 @@ GET /api/ups/:id/history
 
 ---
 
-## 4. PDU 현재 상태 조회
+## 6. PDU 현재 상태 조회
 
 ### Request
 
@@ -171,8 +313,8 @@ GET /api/pdu/:id
 {
   "data": {
     "id": "pdu-001",
-    "name": "PDU A-1",
-    "zone": "Zone-A",
+    "name": "PDU 001",
+    "roomId": "room-001-01-01",
     "totalPower": 12.5,
     "totalCurrent": 56.8,
     "voltage": 220.0,
@@ -189,24 +331,9 @@ GET /api/pdu/:id
 }
 ```
 
-### Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | PDU ID |
-| name | string | PDU 이름 |
-| zone | string | 존 (Zone-A ~ Zone-D) |
-| totalPower | number | 총 전력 (kW) |
-| totalCurrent | number | 총 전류 (A) |
-| voltage | number | 전압 (V) |
-| circuitCount | number | 전체 회로 수 |
-| activeCircuits | number | 활성 회로 수 |
-| powerFactor | number | 역률 |
-| status | string | 상태 (`normal` \| `warning` \| `critical`) |
-
 ---
 
-## 5. PDU 회로 목록 조회
+## 7. PDU 회로 목록 조회
 
 ### Request
 
@@ -237,7 +364,7 @@ GET /api/pdu/:id/circuits
 
 ---
 
-## 6. PDU 히스토리 조회
+## 8. PDU 히스토리 조회
 
 ### Request
 
@@ -261,7 +388,7 @@ GET /api/pdu/:id/history
 
 ---
 
-## 7. CRAC 현재 상태 조회
+## 9. CRAC 현재 상태 조회
 
 ### Request
 
@@ -275,8 +402,8 @@ GET /api/crac/:id
 {
   "data": {
     "id": "crac-001",
-    "name": "CRAC A-1",
-    "zone": "Zone-A",
+    "name": "CRAC 001",
+    "roomId": "room-001-01-01",
     "supplyTemp": 18.5,
     "returnTemp": 24.8,
     "setpoint": 18.0,
@@ -298,27 +425,9 @@ GET /api/crac/:id
 }
 ```
 
-### Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | CRAC ID |
-| name | string | CRAC 이름 |
-| zone | string | 존 (Zone-A ~ Zone-D) |
-| supplyTemp | number | 공급 온도 (°C) |
-| returnTemp | number | 환기 온도 (°C) |
-| setpoint | number | 설정 온도 (°C) |
-| humidity | number | 현재 습도 (%) |
-| humiditySetpoint | number | 설정 습도 (%) |
-| fanSpeed | number | 팬 속도 (%) |
-| compressorStatus | string | 압축기 상태 (`running` \| `idle` \| `fault`) |
-| coolingCapacity | number | 냉각 용량 (%) |
-| status | string | 상태 (`normal` \| `warning` \| `critical`) |
-| mode | string | 운전 모드 (`cooling` \| `heating` \| `dehumidifying` \| `standby`) |
-
 ---
 
-## 8. CRAC 히스토리 조회
+## 10. CRAC 히스토리 조회
 
 ### Request
 
@@ -343,7 +452,7 @@ GET /api/crac/:id/history
 
 ---
 
-## 9. 온습도 센서 현재 상태 조회
+## 11. 온습도 센서 현재 상태 조회
 
 ### Request
 
@@ -357,8 +466,8 @@ GET /api/sensor/:id
 {
   "data": {
     "id": "sensor-001",
-    "name": "Sensor A-1",
-    "zone": "Zone-A",
+    "name": "Sensor 001",
+    "roomId": "room-001-01-01",
     "temperature": 24.5,
     "humidity": 45,
     "dewpoint": 12.3,
@@ -374,18 +483,6 @@ GET /api/sensor/:id
 }
 ```
 
-### Response Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| id | string | 센서 ID |
-| name | string | 센서 이름 |
-| zone | string | 존 (Zone-A ~ Zone-D) |
-| temperature | number | 현재 온도 (°C) |
-| humidity | number | 현재 습도 (%) |
-| dewpoint | number | 이슬점 (°C) |
-| status | string | 상태 (`normal` \| `warning` \| `critical`) |
-
 ### 상태 판정 로직
 
 ```
@@ -396,7 +493,7 @@ otherwise                                                 → status: "normal"
 
 ---
 
-## 10. 온습도 센서 히스토리 조회
+## 12. 온습도 센서 히스토리 조회
 
 ### Request
 
@@ -413,7 +510,7 @@ GET /api/sensor/:id/history
     "period": "24h",
     "timestamps": ["08:00", "09:00", "10:00", "..."],
     "temperatures": [23.5, 24.1, 24.8, "..."],
-    "humidities": [45, 46, 44, "..."]
+    "humidity": [45, 46, 44, "..."]
   }
 }
 ```
@@ -425,5 +522,21 @@ GET /api/sensor/:id/history
 ```bash
 cd ECO/mock_server
 npm install
-npm start  # http://localhost:3004
+npm start  # http://localhost:4004
+```
+
+### 서버 시작 시 출력
+
+```
+========================================
+  ECO Mock Server
+  Environmental Control & Operations
+  Running on http://localhost:4004
+========================================
+
+Hierarchy Structure:
+  Buildings: 3
+  Floors: 6
+  Rooms: 12
+  Assets: 72
 ```

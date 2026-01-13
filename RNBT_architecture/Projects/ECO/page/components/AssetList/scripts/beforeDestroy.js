@@ -27,9 +27,19 @@ if (this.customEvents) {
 if (this._internalHandlers) {
     const root = this.appendElement;
 
+    // 테이블 관련
     root.querySelector('.search-input')?.removeEventListener('input', this._internalHandlers.searchInput);
     root.querySelector('.type-filter')?.removeEventListener('change', this._internalHandlers.typeChange);
     root.querySelector('.status-filter')?.removeEventListener('change', this._internalHandlers.statusChange);
+
+    // 트리 관련
+    root.querySelector('.tree-search-input')?.removeEventListener('input', this._internalHandlers.treeSearchInput);
+    root.querySelector('.btn-expand-all')?.removeEventListener('click', this._internalHandlers.expandAll);
+    root.querySelector('.btn-collapse-all')?.removeEventListener('click', this._internalHandlers.collapseAll);
+    root.querySelector('.tree-container')?.removeEventListener('click', this._internalHandlers.treeClick);
+
+    // 리사이저
+    root.querySelector('.pane-resizer')?.removeEventListener('mousedown', this._internalHandlers.resizerMouseDown);
 
     this._internalHandlers = null;
 }
@@ -56,9 +66,13 @@ if (this._tableInstance) {
 // ======================
 // 5. 상태 초기화
 // ======================
+this._treeData = null;
+this._expandedNodes = null;
+this._selectedNodeId = null;
 this._allAssets = null;
 this._searchTerm = null;
+this._treeSearchTerm = null;
 this._typeFilter = null;
 this._statusFilter = null;
 
-console.log('[AssetList] Destroyed - subscriptions, events, table cleaned up');
+console.log('[AssetList] Destroyed - tree, table, subscriptions, events cleaned up');

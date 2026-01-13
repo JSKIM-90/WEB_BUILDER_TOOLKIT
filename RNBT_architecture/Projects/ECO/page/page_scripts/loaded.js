@@ -17,6 +17,22 @@ const { each } = fx;
 
 this.globalDataMappings = [
     {
+        topic: 'hierarchy',
+        datasetInfo: {
+            datasetName: 'hierarchy',
+            param: {}
+        },
+        refreshInterval: null  // 수동 갱신만
+    },
+    {
+        topic: 'hierarchyAssets',
+        datasetInfo: {
+            datasetName: 'hierarchyAssets',
+            param: { nodeId: '' }
+        },
+        refreshInterval: null
+    },
+    {
         topic: 'assets',
         datasetInfo: {
             datasetName: 'assets',
@@ -32,15 +48,18 @@ this.globalDataMappings = [
 
 this.currentParams = {};
 
+// 매핑 등록 + 초기 파라미터 설정
 fx.go(
     this.globalDataMappings,
     each(GlobalDataPublisher.registerMapping),
-    each(({ topic }) => this.currentParams[topic] = {}),
-    each(({ topic }) =>
-        GlobalDataPublisher.fetchAndPublish(topic, this, this.currentParams[topic])
-            .catch(err => console.error(`[fetchAndPublish:${topic}]`, err))
-    )
+    each(({ topic, datasetInfo }) => {
+        this.currentParams[topic] = { ...datasetInfo.param };
+    })
 );
+
+// 초기 데이터 발행 (hierarchy만 - 트리 렌더링용)
+GlobalDataPublisher.fetchAndPublish('hierarchy', this, this.currentParams['hierarchy'])
+    .catch(err => console.error('[fetchAndPublish:hierarchy]', err));
 
 // ======================
 // INTERVAL MANAGEMENT (필요 시 활성화)
@@ -75,4 +94,4 @@ this.stopAllIntervals = () => {
 // 현재는 수동 갱신만 사용하므로 interval 시작하지 않음
 // this.startAllIntervals();
 
-console.log('[Page] loaded - ECO Dashboard data mappings registered, initial data published');
+console.log('[Page] loaded - ECO Dashboard data mappings registered, hierarchy data published');
