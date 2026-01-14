@@ -120,6 +120,147 @@
         const API_BASE = 'http://localhost:4004/api';
 
         // ======================
+        // UI i18n (클라이언트 JSON 기반)
+        // ======================
+        const UI_I18N_CACHE = {};
+
+        /**
+         * UI 텍스트 JSON 로드
+         * @param {string} locale - 언어 코드 (ko, en, ja)
+         */
+        async function loadUITexts(locale = 'ko') {
+            if (UI_I18N_CACHE[locale]) {
+                return UI_I18N_CACHE[locale];
+            }
+            try {
+                const res = await fetch(`i18n/${locale}.json`);
+                const json = await res.json();
+                UI_I18N_CACHE[locale] = json;
+                return json;
+            } catch (error) {
+                console.error('[i18n] Failed to load UI texts:', error);
+                // fallback to en (default)
+                if (locale !== 'en' && UI_I18N_CACHE['en']) {
+                    return UI_I18N_CACHE['en'];
+                }
+                // 캐시에 en도 없으면 기본 영문 텍스트 반환
+                return getDefaultUITexts();
+            }
+        }
+
+        /**
+         * 기본 UI 텍스트 (영문)
+         * i18n JSON 로드 실패 시 fallback
+         */
+        function getDefaultUITexts() {
+            return {
+                panel: { title: 'Asset List' },
+                tree: {
+                    title: 'Hierarchy',
+                    searchPlaceholder: 'Search hierarchy...',
+                    expandAll: 'Expand All',
+                    collapseAll: 'Collapse All'
+                },
+                table: {
+                    defaultPath: 'All Assets',
+                    searchPlaceholder: 'Search by name or ID...',
+                    columns: { id: 'ID', name: 'Name', type: 'Type', status: 'Status' },
+                    placeholder: 'Select a location from the tree'
+                },
+                filter: { allTypes: 'All Types', allStatus: 'All Status' },
+                status: { normal: 'Normal', warning: 'Warning', critical: 'Critical' },
+                footer: { total: 'Total:', count: '{count}' },
+                actions: { refresh: 'Refresh' }
+            };
+        }
+
+        /**
+         * UI 텍스트 적용
+         * @param {Object} texts - i18n JSON 객체
+         */
+        function applyUITexts(texts) {
+            if (!texts) return;
+
+            // Panel title
+            const panelTitle = panel.querySelector('.panel-title');
+            if (panelTitle) panelTitle.textContent = texts.panel.title;
+
+            // Tree
+            const treeTitle = panel.querySelector('.tree-title');
+            if (treeTitle) treeTitle.textContent = texts.tree.title;
+
+            const treeSearchInput = panel.querySelector('.tree-search-input');
+            if (treeSearchInput) treeSearchInput.placeholder = texts.tree.searchPlaceholder;
+
+            const btnExpandAll = panel.querySelector('.btn-expand-all');
+            if (btnExpandAll) btnExpandAll.title = texts.tree.expandAll;
+
+            const btnCollapseAll = panel.querySelector('.btn-collapse-all');
+            if (btnCollapseAll) btnCollapseAll.title = texts.tree.collapseAll;
+
+            // Table
+            const nodePath = panel.querySelector('.node-path');
+            if (nodePath && !selectedNodeId) nodePath.textContent = texts.table.defaultPath;
+
+            const searchInput = panel.querySelector('.search-input');
+            if (searchInput) searchInput.placeholder = texts.table.searchPlaceholder;
+
+            // Filters
+            const typeFilter = panel.querySelector('.type-filter option[value="all"]');
+            if (typeFilter) typeFilter.textContent = texts.filter.allTypes;
+
+            const statusFilter = panel.querySelector('.status-filter option[value="all"]');
+            if (statusFilter) statusFilter.textContent = texts.filter.allStatus;
+
+            // Status filter options
+            const statusNormal = panel.querySelector('.status-filter option[value="normal"]');
+            const statusWarning = panel.querySelector('.status-filter option[value="warning"]');
+            const statusCritical = panel.querySelector('.status-filter option[value="critical"]');
+            if (statusNormal) statusNormal.textContent = texts.status.normal;
+            if (statusWarning) statusWarning.textContent = texts.status.warning;
+            if (statusCritical) statusCritical.textContent = texts.status.critical;
+
+            // Footer legend
+            const legendItems = panel.querySelectorAll('.legend-item');
+            if (legendItems.length >= 3) {
+                legendItems[0].innerHTML = `<span class="dot normal"></span> ${texts.status.normal}`;
+                legendItems[1].innerHTML = `<span class="dot warning"></span> ${texts.status.warning}`;
+                legendItems[2].innerHTML = `<span class="dot critical"></span> ${texts.status.critical}`;
+            }
+
+            // Footer total
+            const countLabel = panel.querySelector('.count-label');
+            if (countLabel) countLabel.textContent = texts.footer.total;
+
+            // Refresh button
+            const refreshBtn = panel.querySelector('.refresh-btn');
+            if (refreshBtn) refreshBtn.title = texts.actions.refresh;
+
+            // Table columns (재생성 필요)
+            if (tableInstance) {
+                updateTableColumns(texts);
+            }
+
+            console.log('[i18n] UI texts applied:', currentLocale);
+        }
+
+        /**
+         * 테이블 컬럼 헤더 업데이트
+         */
+        function updateTableColumns(texts) {
+            if (!tableInstance) return;
+
+            const columns = tableInstance.getColumnDefinitions();
+            columns.forEach(col => {
+                if (col.field === 'id') col.title = texts.table.columns.id;
+                if (col.field === 'name') col.title = texts.table.columns.name;
+                if (col.field === 'typeLabel') col.title = texts.table.columns.type;
+                if (col.field === 'statusLabel') col.title = texts.table.columns.status;
+            });
+            tableInstance.setColumns(columns);
+        }
+
+        // ======================
         // API Functions (실제 Mock Server 호출)
         // ======================
 
@@ -605,9 +746,14 @@
             });
 
             // Locale selector
-            panel.querySelector('.locale-selector')?.addEventListener('change', (e) => {
+            panel.querySelector('.locale-selector')?.addEventListener('change', async (e) => {
                 currentLocale = e.target.value;
                 console.log('[Preview] Locale changed:', currentLocale);
+
+                // UI 텍스트 업데이트
+                const texts = await loadUITexts(currentLocale);
+                applyUITexts(texts);
+
                 // 트리 및 테이블 데이터 다시 로드
                 expandedNodes.clear();
                 loadedNodes.clear();
@@ -622,7 +768,11 @@
         // INIT
         // ==================
 
-        window.onload = () => {
+        window.onload = async () => {
+            // UI 텍스트 로드 및 적용
+            const texts = await loadUITexts(currentLocale);
+            applyUITexts(texts);
+
             initTable();
             setupResizer();
             setupEventHandlers();

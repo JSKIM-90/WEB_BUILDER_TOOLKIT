@@ -1,21 +1,21 @@
 <div class="asset-list-panel">
     <div class="panel-header">
-        <h2 class="panel-title">Asset List</h2>
-        <button class="refresh-btn" title="Refresh">↻</button>
+        <h2 class="panel-title" data-i18n="panel.title">Asset List</h2>
+        <button class="refresh-btn" data-i18n-title="actions.refresh" title="Refresh">↻</button>
     </div>
 
     <div class="panel-body split-layout">
         <!-- 왼쪽: 트리뷰 -->
         <div class="tree-pane">
             <div class="tree-header">
-                <span class="tree-title">계층 구조</span>
+                <span class="tree-title" data-i18n="tree.title">Hierarchy</span>
                 <div class="tree-controls">
-                    <button class="btn-expand-all" title="Expand All">▼</button>
-                    <button class="btn-collapse-all" title="Collapse All">▶</button>
+                    <button class="btn-expand-all" data-i18n-title="tree.expandAll" title="Expand All">▼</button>
+                    <button class="btn-collapse-all" data-i18n-title="tree.collapseAll" title="Collapse All">▶</button>
                 </div>
             </div>
             <div class="tree-search">
-                <input type="text" class="tree-search-input" placeholder="Search hierarchy...">
+                <input type="text" class="tree-search-input" data-i18n-placeholder="tree.searchPlaceholder" placeholder="Search hierarchy...">
             </div>
             <div class="tree-container">
                 <ul class="tree-root"></ul>
@@ -28,27 +28,27 @@
         <!-- 오른쪽: 테이블 -->
         <div class="table-pane">
             <div class="selected-node-info">
-                <span class="node-path">전체 자산</span>
-                <span class="node-count">0개</span>
+                <span class="node-path" data-i18n="table.defaultPath">All Assets</span>
+                <span class="node-count">0</span>
             </div>
 
             <div class="toolbar">
                 <div class="search-box">
-                    <input type="text" class="search-input" placeholder="Search by name or ID...">
+                    <input type="text" class="search-input" data-i18n-placeholder="table.searchPlaceholder" placeholder="Search by name or ID...">
                 </div>
                 <div class="filter-box">
                     <select class="type-filter">
-                        <option value="all">All Types</option>
+                        <option value="all" data-i18n="filter.allTypes">All Types</option>
                         <option value="ups">UPS</option>
                         <option value="pdu">PDU</option>
                         <option value="crac">CRAC</option>
                         <option value="sensor">Sensor</option>
                     </select>
                     <select class="status-filter">
-                        <option value="all">All Status</option>
-                        <option value="normal">Normal</option>
-                        <option value="warning">Warning</option>
-                        <option value="critical">Critical</option>
+                        <option value="all" data-i18n="filter.allStatus">All Status</option>
+                        <option value="normal" data-i18n="status.normal">Normal</option>
+                        <option value="warning" data-i18n="status.warning">Warning</option>
+                        <option value="critical" data-i18n="status.critical">Critical</option>
                     </select>
                 </div>
             </div>
@@ -59,12 +59,12 @@
 
     <div class="panel-footer">
         <div class="legend">
-            <span class="legend-item"><span class="dot normal"></span> Normal</span>
-            <span class="legend-item"><span class="dot warning"></span> Warning</span>
-            <span class="legend-item"><span class="dot critical"></span> Critical</span>
+            <span class="legend-item"><span class="dot normal"></span><span data-i18n="status.normal">Normal</span></span>
+            <span class="legend-item"><span class="dot warning"></span><span data-i18n="status.warning">Warning</span></span>
+            <span class="legend-item"><span class="dot critical"></span><span data-i18n="status.critical">Critical</span></span>
         </div>
         <div class="asset-count">
-            <span class="count-label">Total:</span>
+            <span class="count-label" data-i18n="footer.total">Total:</span>
             <span class="count-value">0</span>
         </div>
     </div>

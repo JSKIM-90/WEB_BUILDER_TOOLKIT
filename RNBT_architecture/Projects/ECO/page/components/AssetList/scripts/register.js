@@ -45,6 +45,8 @@ function initComponent() {
     this._tableInstance = null;
     this._internalHandlers = {};
     this._locale = 'ko'; // 현재 locale (ko, en, ja)
+    this._uiTexts = null; // UI i18n 텍스트
+    this._uiTextsCache = {}; // locale별 캐시
 
     // ======================
     // 3. TABLE CONFIG
@@ -76,6 +78,8 @@ function initComponent() {
     this.filterByType = filterByType.bind(this);
     this.filterByStatus = filterByStatus.bind(this);
     this.setLocale = setLocale.bind(this);
+    this.loadUITexts = loadUITexts.bind(this);
+    this.applyUITexts = applyUITexts.bind(this);
 
     // ======================
     // 5. SUBSCRIBE
@@ -111,6 +115,13 @@ function initComponent() {
     // 9. INIT RESIZER
     // ======================
     setupResizer.call(this);
+
+    // ======================
+    // 10. INIT UI I18N
+    // ======================
+    this.loadUITexts(this._locale).then(texts => {
+        if (texts) this.applyUITexts(texts);
+    });
 
     console.log('[AssetList] Registered - hierarchy tree view mode');
 }
@@ -568,6 +579,11 @@ function setLocale({ response }) {
     this._locale = data.locale;
     console.log('[AssetList] Locale changed:', this._locale);
 
+    // UI 텍스트 업데이트
+    this.loadUITexts(this._locale).then(texts => {
+        if (texts) this.applyUITexts(texts);
+    });
+
     // 트리 상태 초기화 후 재로드 요청 이벤트 발행
     this._expandedNodes.clear();
     this._loadedNodes.clear();
@@ -630,4 +646,132 @@ function setupResizer() {
 
     // 정리를 위해 저장
     this._internalHandlers.resizerMouseDown = onMouseDown;
+}
+
+// ======================
+// UI I18N
+// ======================
+
+/**
+ * UI 텍스트 JSON 로드
+ * @param {string} locale - 언어 코드 (ko, en, ja)
+ * @returns {Promise<Object|null>} i18n JSON 객체
+ */
+async function loadUITexts(locale = 'ko') {
+    if (this._uiTextsCache[locale]) {
+        return this._uiTextsCache[locale];
+    }
+
+    try {
+        // 컴포넌트 기준 상대 경로로 i18n JSON 로드
+        const basePath = this.componentPath || '';
+        const res = await fetch(`${basePath}i18n/${locale}.json`);
+        const json = await res.json();
+        this._uiTextsCache[locale] = json;
+        this._uiTexts = json;
+        return json;
+    } catch (error) {
+        console.error('[AssetList] Failed to load UI texts:', error);
+        // fallback to en (default)
+        if (locale !== 'en' && this._uiTextsCache['en']) {
+            return this._uiTextsCache['en'];
+        }
+        // 캐시에 en도 없으면 기본 영문 텍스트 반환
+        return getDefaultUITexts();
+    }
+}
+
+/**
+ * 기본 UI 텍스트 (영문)
+ * i18n JSON 로드 실패 시 fallback
+ */
+function getDefaultUITexts() {
+    return {
+        panel: { title: 'Asset List' },
+        tree: {
+            title: 'Hierarchy',
+            searchPlaceholder: 'Search hierarchy...',
+            expandAll: 'Expand All',
+            collapseAll: 'Collapse All'
+        },
+        table: {
+            defaultPath: 'All Assets',
+            searchPlaceholder: 'Search by name or ID...',
+            columns: { id: 'ID', name: 'Name', type: 'Type', status: 'Status' },
+            placeholder: 'Select a location from the tree'
+        },
+        filter: { allTypes: 'All Types', allStatus: 'All Status' },
+        status: { normal: 'Normal', warning: 'Warning', critical: 'Critical' },
+        footer: { total: 'Total:', count: '{count}' },
+        actions: { refresh: 'Refresh' }
+    };
+}
+
+/**
+ * UI 텍스트 적용
+ * @param {Object} texts - i18n JSON 객체
+ */
+function applyUITexts(texts) {
+    if (!texts) return;
+
+    const root = this.appendElement;
+    this._uiTexts = texts;
+
+    // data-i18n 속성으로 텍스트 적용
+    root.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        const value = getNestedValue(texts, key);
+        if (value) el.textContent = value;
+    });
+
+    // data-i18n-placeholder 속성으로 placeholder 적용
+    root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        const value = getNestedValue(texts, key);
+        if (value) el.placeholder = value;
+    });
+
+    // data-i18n-title 속성으로 title 적용
+    root.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.dataset.i18nTitle;
+        const value = getNestedValue(texts, key);
+        if (value) el.title = value;
+    });
+
+    // 테이블 컬럼 헤더 업데이트
+    if (this._tableInstance && texts.table?.columns) {
+        updateTableColumns.call(this, texts);
+    }
+
+    // 테이블 placeholder 업데이트
+    if (this._tableInstance && texts.table?.placeholder) {
+        this.tableConfig.placeholder = texts.table.placeholder;
+    }
+
+    console.log('[AssetList] UI texts applied:', this._locale);
+}
+
+/**
+ * 테이블 컬럼 헤더 업데이트
+ */
+function updateTableColumns(texts) {
+    if (!this._tableInstance) return;
+
+    const columns = this._tableInstance.getColumnDefinitions();
+    columns.forEach(col => {
+        if (col.field === 'id') col.title = texts.table.columns.id;
+        if (col.field === 'name') col.title = texts.table.columns.name;
+        if (col.field === 'typeLabel') col.title = texts.table.columns.type;
+        if (col.field === 'statusLabel') col.title = texts.table.columns.status;
+    });
+    this._tableInstance.setColumns(columns);
+}
+
+/**
+ * 중첩 객체에서 점 표기법 키로 값 가져오기
+ * @param {Object} obj - 객체
+ * @param {string} key - 점 표기법 키 (예: "panel.title")
+ */
+function getNestedValue(obj, key) {
+    return key.split('.').reduce((o, k) => o?.[k], obj);
 }

@@ -147,6 +147,10 @@
 
 ```
 AssetList/
+├── i18n/
+│   ├── ko.json           # 한국어 UI 텍스트
+│   ├── en.json           # 영어 UI 텍스트
+│   └── ja.json           # 일본어 UI 텍스트
 ├── scripts/
 │   ├── register.js       # 메인 로직 (트리/테이블/이벤트)
 │   └── beforeDestroy.js  # 정리 (구독 해제, 테이블 파괴)
@@ -158,6 +162,31 @@ AssetList/
 ├── codeflow.md           # 코드 흐름 설명
 └── README.md
 ```
+
+## UI 다국어 (i18n)
+
+UI 텍스트는 클라이언트 JSON 파일로 관리됩니다.
+
+### JSON 구조
+
+```json
+{
+    "panel": { "title": "자산 목록" },
+    "tree": { "title": "계층 구조", "searchPlaceholder": "...", ... },
+    "table": { "columns": { "id": "ID", "name": "이름", ... }, ... },
+    "filter": { "allTypes": "전체 타입", ... },
+    "status": { "normal": "정상", "warning": "경고", "critical": "위험" },
+    "footer": { "total": "전체:", "count": "{count}개" },
+    "actions": { "refresh": "새로고침" }
+}
+```
+
+### 다국어 분리
+
+| 구분 | 관리 주체 | 설명 |
+|------|----------|------|
+| UI 텍스트 | 클라이언트 (i18n/*.json) | 패널 제목, 버튼, placeholder 등 |
+| 자산 데이터 | 서버 (locale 파라미터) | 자산 이름, typeLabel, statusLabel |
 
 ## preview.html 테스트
 
