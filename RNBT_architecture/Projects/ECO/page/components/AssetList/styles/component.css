@@ -202,6 +202,15 @@
     .node-icon[data-type="rack"]::before { content: "🗄️"; }
     .node-icon[data-type="cabinet"]::before { content: "📦"; }
     .node-icon[data-type="pdu"]::before { content: "🔌"; }
+    /* 말단 자산 */
+    .node-icon[data-type="server"]::before { content: "🖥️"; }
+    .node-icon[data-type="storage"]::before { content: "💾"; }
+    .node-icon[data-type="switch"]::before { content: "🔀"; }
+    .node-icon[data-type="router"]::before { content: "📶"; }
+    .node-icon[data-type="ups"]::before { content: "🔋"; }
+    .node-icon[data-type="crac"]::before { content: "❄️"; }
+    .node-icon[data-type="sensor"]::before { content: "📡"; }
+    .node-icon[data-type="circuit"]::before { content: "⚡"; }
 
     .node-label {
         flex: 1;

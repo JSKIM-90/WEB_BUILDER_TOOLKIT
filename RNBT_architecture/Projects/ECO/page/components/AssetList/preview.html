@@ -301,13 +301,13 @@
             ]
         };
 
-        // hasChildren 필드 자동 계산 (children 배열 기반)
+        // hasChildren 필드 자동 계산 (모든 children 기준)
         function addHasChildren(items) {
             if (!items) return;
             items.forEach(item => {
-                // 컨테이너 children만 카운트 (Tree 표시용)
-                const containerChildren = (item.children || []).filter(c => c.canHaveChildren);
-                item.hasChildren = containerChildren.length > 0;
+                // 모든 children 카운트 (Tree에 모든 자산 표시)
+                const allChildren = item.children || [];
+                item.hasChildren = allChildren.length > 0;
                 if (item.children) addHasChildren(item.children);
             });
         }
@@ -315,37 +315,34 @@
 
         /**
          * depth 제한된 트리 반환 (API 시뮬레이션)
-         * - canHaveChildren: true인 노드만 Tree에 포함
+         * - 모든 자산을 Tree에 포함 (canHaveChildren 관계없이)
          * @param {number} maxDepth - 최대 depth (기본: 2)
          */
         function getHierarchyWithDepth(maxDepth = 2) {
             function limitDepth(items, currentDepth = 1) {
                 if (!items) return [];
 
-                // 컨테이너만 필터링
-                return items
-                    .filter(item => item.canHaveChildren)
-                    .map(item => {
-                        const containerChildren = (item.children || []).filter(c => c.canHaveChildren);
+                // 모든 자산 포함
+                return items.map(item => {
+                    const allChildren = item.children || [];
 
-                        const result = {
-                            id: item.id,
-                            name: item.name,
-                            type: item.type,
-                            canHaveChildren: item.canHaveChildren,
-                            hasChildren: containerChildren.length > 0,
-                            parentId: item.parentId,
-                            status: item.status,
-                            childCount: (item.children || []).length
-                        };
+                    const result = {
+                        id: item.id,
+                        name: item.name,
+                        type: item.type,
+                        canHaveChildren: item.canHaveChildren,
+                        hasChildren: allChildren.length > 0,
+                        parentId: item.parentId,
+                        status: item.status
+                    };
 
-                        if (currentDepth < maxDepth && containerChildren.length > 0) {
-                            result.children = limitDepth(containerChildren, currentDepth + 1);
-                        } else {
-                            result.children = [];
-                        }
-                        return result;
-                    });
+                    if (currentDepth < maxDepth && allChildren.length > 0) {
+                        result.children = limitDepth(allChildren, currentDepth + 1);
+                    } else {
+                        result.children = [];
+                    }
+                    return result;
+                });
             }
 
             return {
@@ -356,53 +353,120 @@
         }
 
         /**
-         * 특정 노드의 직속 컨테이너 children 반환 (Lazy Loading API 시뮬레이션)
+         * 특정 노드의 직속 children 반환 (Lazy Loading API 시뮬레이션)
+         * - 모든 자산 반환 (canHaveChildren 관계없이)
          * @param {string} nodeId - 부모 노드 ID
          */
         function getNodeChildren(nodeId) {
             const node = findNodeInHierarchy(FULL_HIERARCHY.items, nodeId);
             if (!node || !node.children) return { parentId: nodeId, children: [] };
 
-            // 컨테이너만 반환
-            const containerChildren = node.children
-                .filter(child => child.canHaveChildren)
-                .map(child => {
-                    const subContainers = (child.children || []).filter(c => c.canHaveChildren);
-                    return {
-                        id: child.id,
-                        name: child.name,
-                        type: child.type,
-                        canHaveChildren: child.canHaveChildren,
-                        hasChildren: subContainers.length > 0,
-                        parentId: nodeId,
-                        status: child.status,
-                        childCount: (child.children || []).length
-                    };
-                });
+            // 모든 자산 반환
+            const allChildren = node.children.map(child => {
+                const subChildren = child.children || [];
+                return {
+                    id: child.id,
+                    name: child.name,
+                    type: child.type,
+                    canHaveChildren: child.canHaveChildren,
+                    hasChildren: subChildren.length > 0,
+                    parentId: nodeId,
+                    status: child.status
+                };
+            });
 
-            return { parentId: nodeId, children: containerChildren };
+            return { parentId: nodeId, children: allChildren };
         }
 
-        // MOCK_DATA (Lazy Loading 테스트: depth=1)
-        const MOCK_DATA = {
-            get hierarchy() {
-                return getHierarchyWithDepth(1);
-            }
-        };
+        // ======================
+        // Mock API (Promise 기반)
+        // register.js 응답 구조와 동일: { response: { data: ... } }
+        // ======================
+
+        const MOCK_DELAY = 300; // 네트워크 지연 시뮬레이션 (ms)
 
         /**
-         * 노드 하위의 모든 자산 조회 (Table용)
-         * - canHaveChildren 관계없이 모든 하위 자산 반환
-         * @param {string} nodeId - 부모 노드 ID
+         * GET /api/hierarchy?depth=n
+         * 트리 계층 조회 (depth 제한)
          */
-        function getAssetsForNode(nodeId) {
+        function fetchHierarchy(depth = 1) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const result = getHierarchyWithDepth(depth);
+                    resolve({
+                        response: {
+                            data: {
+                                title: result.title,
+                                items: result.items,
+                                summary: result.summary
+                            }
+                        }
+                    });
+                }, MOCK_DELAY);
+            });
+        }
+
+        /**
+         * GET /api/hierarchy/:nodeId/children
+         * 노드의 직속 children 조회 (Lazy Loading)
+         */
+        function fetchNodeChildren(nodeId) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const result = getNodeChildren(nodeId);
+                    resolve({
+                        response: {
+                            data: {
+                                parentId: result.parentId,
+                                children: result.children
+                            }
+                        }
+                    });
+                }, MOCK_DELAY);
+            });
+        }
+
+        /**
+         * GET /api/hierarchy/:nodeId/assets
+         * 노드 하위의 모든 자산 조회 (Table용)
+         */
+        function fetchNodeAssets(nodeId) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const node = findNodeInHierarchy(FULL_HIERARCHY.items, nodeId);
+                    const nodePath = getNodePathFromHierarchy(FULL_HIERARCHY.items, nodeId);
+                    const assets = collectAssetsForNode(nodeId);
+
+                    resolve({
+                        response: {
+                            data: {
+                                nodeId,
+                                nodeName: node?.name || '',
+                                nodePath,
+                                nodeType: node?.type || '',
+                                assets,
+                                summary: {
+                                    total: assets.length,
+                                    byStatus: countByStatus(assets)
+                                }
+                            }
+                        }
+                    });
+                }, MOCK_DELAY);
+            });
+        }
+
+        // ======================
+        // 내부 헬퍼 함수들
+        // ======================
+
+        function collectAssetsForNode(nodeId) {
             const node = findNodeInHierarchy(FULL_HIERARCHY.items, nodeId);
             if (!node) return [];
 
             const assets = [];
 
-            function collectAssets(item) {
-                // 현재 노드도 자산으로 포함 (루트 노드 제외)
+            function collect(item) {
                 if (item.id !== nodeId) {
                     assets.push({
                         id: item.id,
@@ -413,17 +477,34 @@
                         status: item.status
                     });
                 }
-                // 하위 자산 재귀 수집
                 if (item.children && item.children.length > 0) {
-                    item.children.forEach(child => collectAssets(child));
+                    item.children.forEach(child => collect(child));
                 }
             }
 
-            collectAssets(node);
+            collect(node);
             return assets;
         }
 
-        // 계층에서 노드 찾기
+        function getNodePathFromHierarchy(items, targetId, path = []) {
+            for (const item of items || []) {
+                const currentPath = [...path, item.name];
+                if (item.id === targetId) return currentPath.join(' > ');
+                if (item.children) {
+                    const found = getNodePathFromHierarchy(item.children, targetId, currentPath);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function countByStatus(assets) {
+            return assets.reduce((acc, a) => {
+                acc[a.status] = (acc[a.status] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
         function findNodeInHierarchy(items, targetId) {
             for (const item of items || []) {
                 if (item.id === targetId) return item;
@@ -457,10 +538,16 @@
         // TREE RENDERING
         // ==================
 
-        function renderTree(data) {
+        /**
+         * 트리 렌더링 (register.js와 동일한 { response } 구조)
+         */
+        function renderTree({ response }) {
+            const { data } = response;
+            if (!data || !data.items) return;
+
             treeData = data.items;
             const titleEl = panel.querySelector('.tree-title');
-            if (titleEl) titleEl.textContent = data.title;
+            if (titleEl && data.title) titleEl.textContent = data.title;
 
             renderTreeNodes(treeData, treeSearchTerm);
             console.log('[Preview] Tree rendered:', data.summary);
@@ -586,13 +673,10 @@
                 const needsLazyLoad = nodeEl?.dataset.needsLazyLoad === 'true';
 
                 if (needsLazyLoad && !loadedNodes.has(nodeId)) {
-                    // Lazy Loading 시뮬레이션 (500ms 지연)
                     console.log(`[Preview] Lazy loading children for ${nodeId}...`);
 
-                    setTimeout(() => {
-                        const data = getNodeChildren(nodeId);
-                        appendChildren(data);
-                    }, 500);
+                    // Promise 기반 API 호출
+                    fetchNodeChildren(nodeId).then(appendChildren);
                 }
             } else {
                 expandedNodes.delete(nodeId);
@@ -602,9 +686,10 @@
         }
 
         /**
-         * Lazy Loading으로 가져온 children을 트리에 추가
+         * Lazy Loading으로 가져온 children을 트리에 추가 (register.js와 동일한 { response } 구조)
          */
-        function appendChildren(data) {
+        function appendChildren({ response }) {
+            const { data } = response;
             if (!data || !data.parentId) return;
 
             const { parentId, children } = data;
@@ -650,24 +735,9 @@
             const nodeEl = panel.querySelector(`[data-node-id="${nodeId}"] > .node-content`);
             if (nodeEl) nodeEl.classList.add('selected');
 
-            // 노드 경로 찾기
-            const nodePath = getNodePath(MOCK_DATA.hierarchy.items, nodeId);
-            const assets = getAssetsForNode(nodeId);
-
-            renderTable({ nodePath, assets });
+            // Promise 기반 API 호출
+            fetchNodeAssets(nodeId).then(renderTable);
             console.log('[Preview] Node selected:', nodeId);
-        }
-
-        function getNodePath(items, targetId, path = []) {
-            for (const item of items || []) {
-                const currentPath = [...path, item.name];
-                if (item.id === targetId) return currentPath.join(' > ');
-                if (item.children) {
-                    const found = getNodePath(item.children, targetId, currentPath);
-                    if (found) return found;
-                }
-            }
-            return null;
         }
 
         function expandAll() {
@@ -706,8 +776,14 @@
         // TABLE RENDERING
         // ==================
 
-        function renderTable(data) {
-            const { nodePath, assets = [] } = data;
+        /**
+         * 테이블 렌더링 (register.js와 동일한 { response } 구조)
+         */
+        function renderTable({ response }) {
+            const { data } = response;
+            if (!data) return;
+
+            const { nodePath, assets = [], summary } = data;
 
             const pathEl = panel.querySelector('.node-path');
             const countEl = panel.querySelector('.selected-node-info .node-count');
@@ -717,7 +793,7 @@
             allAssets = assets;
             applyFilters();
 
-            console.log('[Preview] Table rendered:', assets.length, 'assets');
+            console.log('[Preview] Table rendered:', summary);
         }
 
         function applyFilters() {
@@ -866,7 +942,7 @@
             // Refresh button
             panel.querySelector('.refresh-btn')?.addEventListener('click', () => {
                 console.log('[Preview] Refresh clicked');
-                renderTree(MOCK_DATA.hierarchy);
+                fetchHierarchy(1).then(renderTree);
             });
         }
 
@@ -878,7 +954,8 @@
             initTable();
             setupResizer();
             setupEventHandlers();
-            renderTree(MOCK_DATA.hierarchy);
+            // Promise 기반 API 호출로 초기 트리 로드
+            fetchHierarchy(1).then(renderTree);
         };
     </script>
 </body>

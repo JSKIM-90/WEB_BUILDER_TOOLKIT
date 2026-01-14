@@ -308,71 +308,63 @@ function getNodePath(nodeId) {
 
 /**
  * depth 제한에 따라 트리 구조 필터링
- * - canHaveChildren: true인 노드만 Tree에 포함
+ * - 모든 자산을 Tree에 포함 (canHaveChildren 관계없이)
  * @param {Array} items - 트리 아이템 배열
  * @param {number} maxDepth - 최대 depth (1: 루트만, 2: 루트+1레벨, ...)
  * @param {number} currentDepth - 현재 depth
- * @returns {Array} depth 제한된 트리 (컨테이너만)
+ * @returns {Array} depth 제한된 트리 (모든 자산)
  */
 function limitTreeDepth(items, maxDepth, currentDepth = 1) {
     if (!items || items.length === 0) return [];
 
-    return items
-        .filter(item => item.canHaveChildren) // Tree에는 컨테이너만 표시
-        .map(item => {
-            // 하위 컨테이너만 필터링
-            const containerChildren = (item.children || []).filter(c => c.canHaveChildren);
+    return items.map(item => {
+        const allChildren = item.children || [];
 
-            const result = {
-                id: item.id,
-                name: item.name,
-                type: item.type,
-                canHaveChildren: item.canHaveChildren,
-                hasChildren: containerChildren.length > 0,
-                parentId: item.parentId,
-                status: item.status,
-                // 직속 하위 자산 수 (컨테이너 포함)
-                childCount: (item.children || []).length
-            };
+        const result = {
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            canHaveChildren: item.canHaveChildren,
+            hasChildren: allChildren.length > 0,
+            parentId: item.parentId,
+            status: item.status
+        };
 
-            // depth 범위 내에서만 children 포함
-            if (currentDepth < maxDepth && containerChildren.length > 0) {
-                result.children = limitTreeDepth(containerChildren, maxDepth, currentDepth + 1);
-            } else {
-                // depth 초과시 빈 배열 (hasChildren으로 Lazy Loading 가능 여부 판단)
-                result.children = [];
-            }
+        // depth 범위 내에서만 children 포함
+        if (currentDepth < maxDepth && allChildren.length > 0) {
+            result.children = limitTreeDepth(allChildren, maxDepth, currentDepth + 1);
+        } else {
+            // depth 초과시 빈 배열 (hasChildren으로 Lazy Loading 가능 여부 판단)
+            result.children = [];
+        }
 
-            return result;
-        });
+        return result;
+    });
 }
 
 /**
- * 특정 노드의 직속 하위 컨테이너 조회 (Lazy Loading용)
- * - canHaveChildren: true인 하위 노드만 반환
+ * 특정 노드의 직속 하위 자산 조회 (Lazy Loading용)
+ * - 모든 하위 자산 반환 (canHaveChildren 관계없이)
  * @param {string} nodeId - 부모 노드 ID
- * @returns {Array} 직속 하위 컨테이너 목록
+ * @returns {Array} 직속 하위 자산 목록
  */
 function getNodeChildren(nodeId) {
     const node = findNodeById(nodeId);
     if (!node || !node.children) return [];
 
-    // 컨테이너만 필터링
-    return node.children
-        .filter(child => child.canHaveChildren)
-        .map(child => {
-            const containerChildren = (child.children || []).filter(c => c.canHaveChildren);
-            return {
-                id: child.id,
-                name: child.name,
-                type: child.type,
-                canHaveChildren: child.canHaveChildren,
-                hasChildren: containerChildren.length > 0,
-                parentId: nodeId,
-                status: child.status,
-                childCount: (child.children || []).length
-            };
-        });
+    // 모든 자산 반환
+    return node.children.map(child => {
+        const allChildren = child.children || [];
+        return {
+            id: child.id,
+            name: child.name,
+            type: child.type,
+            canHaveChildren: child.canHaveChildren,
+            hasChildren: allChildren.length > 0,
+            parentId: nodeId,
+            status: child.status
+        };
+    });
 }
 
 /**
