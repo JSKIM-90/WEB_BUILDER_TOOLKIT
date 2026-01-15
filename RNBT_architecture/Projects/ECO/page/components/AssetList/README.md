@@ -173,6 +173,9 @@
 
 ```
 AssetList/
+├── docs/
+│   ├── codeflow.md       # 코드 흐름 설명
+│   └── TREE_RENDERING.md # 트리 렌더링 상세 문서
 ├── i18n/
 │   ├── ko.json           # 한국어 UI 텍스트
 │   ├── en.json           # 영어 UI 텍스트
@@ -185,7 +188,6 @@ AssetList/
 ├── views/
 │   └── component.html    # UI 구조
 ├── preview.html          # 독립 실행 테스트 (Mock Server 필요)
-├── codeflow.md           # 코드 흐름 설명
 └── README.md
 ```
 
@@ -229,8 +231,9 @@ npm start  # http://localhost:4004
 
 - [API_SPEC.md](../../API_SPEC.md) - API 명세
 - [I18N_SPEC.md](../../I18N_SPEC.md) - 다국어 설계 명세
-- [codeflow.md](codeflow.md) - 코드 흐름 설명
+- [docs/codeflow.md](docs/codeflow.md) - 코드 흐름 설명
+- [docs/TREE_RENDERING.md](docs/TREE_RENDERING.md) - 트리 렌더링 상세 문서
 
 ---
 
-*최종 업데이트: 2026-01-14*
+*최종 업데이트: 2026-01-15*
