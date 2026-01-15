@@ -174,6 +174,38 @@ Lazy Loading 시에도 동일하게 적용:
 }
 ```
 
+### 자산 상세 API (UPS/PDU/CRAC/Sensor)
+
+자산 상세 API도 locale 파라미터를 지원하며, `fields` 배열의 `label`과 `valueLabel`이 번역됩니다:
+
+```
+GET /api/ups/:id?locale=en
+GET /api/pdu/:id?locale=en
+GET /api/crac/:id?locale=en
+GET /api/sensor/:id?locale=en
+```
+
+**응답 예시 (locale=en)**
+
+```json
+{
+  "data": {
+    "id": "ups-001",
+    "name": "UPS 0001",
+    "type": "ups",
+    "typeLabel": "UPS",
+    "status": "normal",
+    "statusLabel": "Normal",
+    "fields": [
+      { "key": "load", "label": "Load", "value": 65.2, "unit": "%", "order": 1 },
+      { "key": "batteryLevel", "label": "Battery Level", "value": 100, "unit": "%", "order": 2 },
+      { "key": "mode", "label": "Mode", "value": "online", "valueLabel": "Online", "order": 8 }
+    ]
+  },
+  "meta": { "locale": "en" }
+}
+```
+
 ---
 
 ## 5. 번역 데이터
@@ -208,6 +240,69 @@ Lazy Loading 시에도 동일하게 적용:
 | normal | 정상 | Normal | 正常 |
 | warning | 경고 | Warning | 警告 |
 | critical | 위험 | Critical | 危険 |
+
+### 필드 라벨 (자산 상세 API)
+
+**UPS 필드**
+
+| key | ko | en | ja |
+|-----|----|----|-----|
+| load | 부하율 | Load | 負荷率 |
+| batteryLevel | 배터리 잔량 | Battery Level | バッテリー残量 |
+| inputVoltage | 입력 전압 | Input Voltage | 入力電圧 |
+| outputVoltage | 출력 전압 | Output Voltage | 出力電圧 |
+| runtime | 예상 런타임 | Runtime | 予想ランタイム |
+| temperature | 온도 | Temperature | 温度 |
+| efficiency | 효율 | Efficiency | 効率 |
+| mode | 운전 모드 | Mode | 運転モード |
+
+**PDU 필드**
+
+| key | ko | en | ja |
+|-----|----|----|-----|
+| totalPower | 총 전력 | Total Power | 総電力 |
+| totalCurrent | 총 전류 | Total Current | 総電流 |
+| voltage | 전압 | Voltage | 電圧 |
+| powerFactor | 역률 | Power Factor | 力率 |
+| circuitCount | 회로 수 | Circuit Count | 回路数 |
+| activeCircuits | 활성 회로 | Active Circuits | アクティブ回路 |
+| temperature | 온도 | Temperature | 温度 |
+| humidity | 습도 | Humidity | 湿度 |
+
+**CRAC 필드**
+
+| key | ko | en | ja |
+|-----|----|----|-----|
+| supplyTemp | 공급 온도 | Supply Temp | 給気温度 |
+| returnTemp | 환기 온도 | Return Temp | 還気温度 |
+| setpoint | 설정 온도 | Setpoint | 設定温度 |
+| humidity | 습도 | Humidity | 湿度 |
+| fanSpeed | 팬 속도 | Fan Speed | ファン速度 |
+| coolingCapacity | 냉각 용량 | Cooling Capacity | 冷却容量 |
+| powerConsumption | 소비 전력 | Power | 消費電力 |
+| mode | 운전 모드 | Mode | 運転モード |
+
+**Sensor 필드**
+
+| key | ko | en | ja |
+|-----|----|----|-----|
+| temperature | 온도 | Temperature | 温度 |
+| humidity | 습도 | Humidity | 湿度 |
+| dewPoint | 이슬점 | Dew Point | 露点 |
+| heatIndex | 체감 온도 | Heat Index | 体感温度 |
+
+### 운전 모드 라벨 (valueLabel)
+
+| value | ko | en | ja |
+|-------|----|----|-----|
+| online | 온라인 | Online | オンライン |
+| battery | 배터리 | Battery | バッテリー |
+| bypass | 바이패스 | Bypass | バイパス |
+| eco | ECO 모드 | ECO Mode | ECOモード |
+| cooling | 냉방 | Cooling | 冷房 |
+| heating | 난방 | Heating | 暖房 |
+| auto | 자동 | Auto | 自動 |
+| standby | 대기 | Standby | スタンバイ |
 
 ---
 
@@ -253,6 +348,7 @@ columns: [
 | nodePath 번역 | ✅ 완료 | 경로도 번역됨 |
 | preview.html 적용 | ✅ 완료 | locale 선택기, API 파라미터 전달 |
 | register.js 적용 | ✅ 완료 | locale 구독, 이벤트 발행 |
+| 자산 상세 API fields | ✅ 완료 | UPS/PDU/CRAC/Sensor fields 라벨 번역 |
 
 ---
 
@@ -275,3 +371,4 @@ GET /api/i18n/ui?locale=ko&component=AssetList
 | 2026-01-14 | 초안 작성 - 다국어 설계 명세 |
 | 2026-01-14 | Mock 서버 구현 완료 - 자산 데이터 다국어 적용 |
 | 2026-01-14 | 클라이언트 구현 완료 - preview.html, register.js 적용 |
+| 2026-01-15 | 자산 상세 API 다국어 문서 추가 - fields 라벨 번역 테이블 |
