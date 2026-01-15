@@ -446,7 +446,7 @@ this.renderData = null;
 
 ## CSS 원칙
 
-**[CODING_STYLE.md](../CODING_STYLE.md)의 CSS 원칙 섹션 참조**
+**[CODING_STYLE.md](../guides/CODING_STYLE.md)의 CSS 원칙 섹션 참조**
 
 핵심 요약:
 - **px 단위 사용** (rem/em 금지)
@@ -586,4 +586,4 @@ TBD_topicName → 'actualTopic'
 | `discussions/2025-12-30_component_standalone.md` | 단독 개발 가능 범위 논의 (필수 참고) |
 | `RNBT_architecture/Components/README.md` | 컴포넌트 원칙, 구조 |
 | `RNBT_architecture/Components/LogViewer/` | 참고 예제 |
-| `.claude/skills/CODING_STYLE.md` | 함수형 코딩 지침 |
+| `.claude/guides/CODING_STYLE.md` | 함수형 코딩 지침 |
