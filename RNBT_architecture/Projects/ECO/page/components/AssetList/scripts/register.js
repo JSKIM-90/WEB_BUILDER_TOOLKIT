@@ -752,12 +752,6 @@ async function onRowClick(asset) {
 
             // Modal에 데이터 표시
             showModal.call(this, { asset, detail: data });
-
-            // 상세 데이터 이벤트 발행 (3D 컴포넌트 등에서 사용 가능)
-            Weventbus.emit('@assetDetailLoaded', {
-                event: { asset, detail: data },
-                targetInstance: this
-            });
         }
     } catch (error) {
         console.error(`[AssetList] Failed to fetch ${datasetName} API for ${id}:`, error);
