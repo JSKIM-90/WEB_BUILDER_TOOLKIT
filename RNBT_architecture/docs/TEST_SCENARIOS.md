@@ -4444,7 +4444,7 @@ console.assert(cleanupOrder[2] === 'base', '세 번째: base (처음 적용)');
 
 ## 7. 자기완결 컴포넌트 테스트
 
-자기완결 컴포넌트(Self-Contained Component)는 데이터 fetch, 렌더링, 이벤트, UI(팝업)를 모두 내부에서 관리하는 컴포넌트입니다.
+자기완결 컴포넌트(Component With Popup)는 데이터 fetch, 렌더링, 이벤트, UI(팝업)를 모두 내부에서 관리하는 컴포넌트입니다.
 
 **핵심 요소:**
 - `datasetInfo`: 데이터 정의 (무엇을 fetch하고 어떻게 render할지)

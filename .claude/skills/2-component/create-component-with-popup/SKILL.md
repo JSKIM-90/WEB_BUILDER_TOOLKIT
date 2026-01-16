@@ -170,7 +170,7 @@ publishCode에서 template 태그로 팝업 HTML 제공:
 
 ```javascript
 /**
- * [ComponentName] - Self-Contained Component
+ * [ComponentName] - Component With Popup
  *
  * applyShadowPopupMixin을 사용한 자기완결 컴포넌트
  *

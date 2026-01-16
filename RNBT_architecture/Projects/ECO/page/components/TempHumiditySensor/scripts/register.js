@@ -1,10 +1,9 @@
 /**
- * TempHumiditySensor - Self-Contained 3D Component
+ * TempHumiditySensor - 3D Component with Popup
  *
  * 온습도 센서 컴포넌트
  * - 현재 온도/습도 표시
  * - 온습도 히스토리 차트
- * - IPSILON_3D TemperatureSensor 참조 구현
  */
 
 const { bind3DEvents, fetchData } = Wkit;
