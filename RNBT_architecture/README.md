@@ -13,12 +13,13 @@
 - [완전한 라이프사이클 흐름](#완전한-라이프사이클-흐름)
 - [핵심 원칙](#핵심-원칙)
 - [Default JS 템플릿](#default-js-템플릿)
-- [컴포넌트 개발 사례: 자기 완결 컴포넌트](#컴포넌트-개발-사례-자기-완결-컴포넌트)
 - [fx.go 기반 에러 핸들링 가이드](#fxgo-기반-에러-핸들링-가이드)
 - [Component Structure Guide](#component-structure-guide)
 - [부록 A: 라이프사이클 상세](#부록-a-라이프사이클-상세)
 - [부록 B: 컴포넌트 로드 시점 초기화 패턴](#부록-b-컴포넌트-로드-시점-초기화-패턴)
 - [부록 C: 컴포넌트 내부 이벤트 패턴](#부록-c-컴포넌트-내부-이벤트-패턴)
+- [부록 D: Configuration 설계 원칙](#부록-d-configuration-설계-원칙)
+- [부록 E: PopupMixin 패턴](#부록-e-popupmixin-패턴)
 
 ---
 
@@ -903,1266 +904,6 @@ disposeAllThreeResources(this);
 
 ---
 
-## 컴포넌트 개발 사례: 자기 완결 컴포넌트
-
-Default JS 템플릿을 기반으로 Shadow DOM Popup + Chart 기능을 확장한 개발 사례입니다.
-
-참조:
-- [Projects/ECO](Projects/ECO/)
-- [Utils/PopupMixin.js](Utils/PopupMixin.js)
-
-### 핵심 개념
-
-**자기 완결 컴포넌트:** 데이터 fetch, 렌더링, 이벤트, UI(팝업)를 모두 내부에서 관리하는 컴포넌트
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Self-Contained Component                                            │
-│                                                                      │
-│  - datasetInfo: 데이터 정의 (무엇을 fetch하고 어떻게 render할지)        │
-│  - Config: API 필드 매핑 + 스타일 설정                                │
-│  - Public Methods: Page에서 호출 (showDetail, hideDetail)            │
-│  - customEvents: 3D 이벤트 발행 (@sensorClicked)                     │
-│  - Popup: Shadow DOM 기반 UI (오버라이드 가능)                        │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Configuration 설계 원칙
-
-#### Config의 본질
-
-Config는 **추상화된 구조에 다형성을 부여하기 위한 주입 옵션**이다.
-
-**핵심 질문:** "이 로직에서 미리 알 수 없는 부분은 무엇인가?"
-
-그 답이 config가 된다.
-
-#### 왜 Config가 필요한가
-
-**문제 상황:**
-
-팝업 템플릿에 센서 정보를 렌더링해야 한다고 가정하자.
-
-```javascript
-// 하드코딩된 접근
-function renderSensorInfo(data) {
-    this.popupQuery('.sensor-name').textContent = data.name;
-    this.popupQuery('.sensor-zone').textContent = data.zone;
-    this.popupQuery('.sensor-temp').textContent = data.temperature;
-}
-```
-
-이 코드는 특정 템플릿 구조를 전제한다. `.sensor-name`, `.sensor-zone`, `.sensor-temp`라는 선택자가 반드시 존재해야 한다.
-
-다른 템플릿을 사용하려면? 함수를 새로 작성해야 한다.
-
-**Config의 해결:**
-
-```javascript
-// Config 기반 접근
-const sensorInfoConfig = [
-    { key: 'name', selector: '.sensor-name' },
-    { key: 'zone', selector: '.sensor-zone' },
-    { key: 'temperature', selector: '.sensor-temp' }
-];
-
-function renderInfo(config, { response }) {
-    const { data } = response;
-    if (!data) return;
-    config.forEach(({ key, selector }) => {
-        this.popupQuery(selector).textContent = data[key];
-    });
-}
-```
-
-이제 `renderInfo`는 어떤 템플릿이든 처리할 수 있다. 템플릿이 달라지면 config만 바꾸면 된다.
-
-#### Config의 경계: 무엇을 config로 빼야 하는가
-
-**판단 기준:**
-
-| 질문 | Yes → Config | No → 하드코딩 |
-|------|--------------|---------------|
-| 이 값이 템플릿/컨텍스트마다 달라지는가? | ✓ | |
-| 이 값을 미리 알 수 없는가? | ✓ | |
-| 이 값이 비즈니스 요구에 따라 변경될 가능성이 있는가? | ✓ | |
-
-**경계의 예시:**
-
-Config로 빼야 하는 것:
-- DOM 선택자 (템플릿 구조에 의존)
-- 데이터 필드 매핑 (API 응답 구조에 의존)
-- 스타일 값 (디자인 요구사항에 의존)
-- 차트 시리즈 정의 (데이터 종류에 의존)
-
-하드코딩해도 되는 것:
-- 렌더링 로직 자체 (config를 순회하며 값을 삽입하는 방식)
-- 차트 라이브러리 호출 방식 (echarts.setOption의 구조)
-- 이벤트 바인딩 메커니즘 (델리게이션 패턴)
-
-#### 실제 적용 패턴
-
-**패턴 1: 정보 렌더링 Config**
-
-문제: 팝업 템플릿의 구조를 렌더링 함수가 미리 알 수 없다.
-
-해결: 선택자와 데이터 키의 매핑을 config로 분리한다.
-
-```javascript
-// Config 정의
-this.baseInfoConfig = [
-    { key: 'name', selector: '.asset-name' },
-    { key: 'zone', selector: '.asset-zone' },
-    { key: 'status', selector: '.asset-status', dataAttr: 'status' }
-];
-
-this.sensorInfoConfig = [
-    { key: 'temperature', selector: '.sensor-temp' },
-    { key: 'humidity', selector: '.sensor-humidity' }
-];
-
-// 렌더링 함수 - 템플릿 구조를 모름
-function renderInfo(config, { response }) {
-    const { data } = response;
-    if (!data) return;
-    fx.go(
-        config,
-        fx.each(({ key, selector, dataAttr }) => {
-            const el = this.popupQuery(selector);
-            if (!el) return;
-            el.textContent = data[key];
-            if (dataAttr) el.dataset[dataAttr] = data[key];
-        })
-    );
-}
-
-// 사용: config를 바인딩하여 특화된 함수 생성
-this.renderSensorInfo = renderInfo.bind(this, [
-    ...this.baseInfoConfig,
-    ...this.sensorInfoConfig
-]);
-```
-
-| 필드 | 역할 | 왜 config인가 |
-|------|------|---------------|
-| key | API 응답에서 추출할 필드명 | API 구조가 컴포넌트마다 다름 |
-| selector | DOM에서 찾을 선택자 | 템플릿 구조가 컴포넌트마다 다름 |
-| dataAttr | data-* 속성으로 설정할 값 | CSS 선택자 활용 여부가 다름 |
-
-**패턴 2: 차트 Config**
-
-문제: 차트의 데이터 구조와 시각적 표현이 컴포넌트마다 다르다.
-
-해결: 데이터 매핑과 스타일을 config로, 차트 옵션 생성 로직은 별도 함수로 분리한다.
-
-```javascript
-// Config 정의
-this.chartConfig = {
-    xKey: 'timestamps',
-    series: [
-        { yKey: 'temperatures', color: '#3b82f6', smooth: true, areaStyle: true },
-        { yKey: 'humidity', color: '#10b981', smooth: true }
-    ],
-    optionBuilder: getLineChartOption
-};
-
-// 옵션 빌더 - 차트 타입별로 존재
-function getLineChartOption(config, data) {
-    const { xKey, series } = config;
-    return {
-        xAxis: { data: data[xKey] },
-        series: series.map(({ yKey, color, smooth, areaStyle }) => ({
-            type: 'line',
-            data: data[yKey],
-            lineStyle: { color },
-            smooth: smooth ?? false,
-            areaStyle: areaStyle ? { opacity: 0.3 } : undefined
-        }))
-    };
-}
-
-// 렌더링 함수
-function renderChart(config, { response }) {
-    const { data } = response;
-    if (!data) return;
-    const { optionBuilder, ...chartConfig } = config;
-    const option = optionBuilder(chartConfig, data);
-    this.updateChart('.chart-container', option);
-}
-
-// 사용
-this.renderChart = renderChart.bind(this, this.chartConfig);
-```
-
-| 필드 | 역할 | 왜 config인가 |
-|------|------|---------------|
-| xKey | X축 데이터 필드명 | API 응답 구조가 다름 |
-| series[].yKey | Y축 데이터 필드명 | 표시할 데이터가 다름 |
-| series[].color | 선/영역 색상 | 디자인 요구사항이 다름 |
-| optionBuilder | 차트 옵션 생성 함수 | 차트 타입(line/bar/pie)이 다름 |
-
-**패턴 3: 테이블 Config**
-
-문제: 테이블의 컬럼 구조와 포매터가 컴포넌트마다 다르다.
-
-해결: Tabulator 컬럼 정의를 config로 분리한다.
-
-```javascript
-// Config 정의
-this.tableConfig = {
-    selector: '.table-container',
-    columns: [
-        { title: 'PID', field: 'pid', widthGrow: 1, hozAlign: 'right' },
-        { title: 'Name', field: 'name', widthGrow: 2 },
-        {
-            title: 'CPU',
-            field: 'cpu',
-            widthGrow: 1,
-            hozAlign: 'right',
-            formatter: (cell) => {
-                const value = cell.getValue();
-                const color = value > 25 ? '#ef4444' : value > 15 ? '#eab308' : '#22c55e';
-                return `<span style="color: ${color}">${value}%</span>`;
-            }
-        }
-    ],
-    optionBuilder: getTableOption
-};
-
-// 옵션 빌더
-function getTableOption(config, data) {
-    return {
-        layout: 'fitColumns',
-        height: 250,
-        initialSort: [{ column: 'cpu', dir: 'desc' }],
-        columns: config.columns
-    };
-}
-
-// 렌더링 함수
-function renderProcessTable(config, data) {
-    const { optionBuilder } = config;
-    const option = optionBuilder(config, data.processes);
-    this.updateTable('.table-container', data.processes, option);
-}
-```
-
-**패턴 4: 이벤트 Config**
-
-문제: 팝업 내 이벤트 핸들러의 선택자와 동작이 컴포넌트마다 다르다.
-
-해결: 이벤트 타입, 선택자, 핸들러의 매핑을 config로 분리한다.
-
-```javascript
-// Config 정의
-this.popupCreatedConfig = {
-    chartSelector: '.chart-container',
-    tableSelector: '.table-container',
-    events: {
-        click: {
-            '.close-btn': () => this.hideDetail(),
-            '.refresh-btn': () => this.refresh(),
-            '.tab-btn': (e) => this._switchTab(e.target.dataset.tab)
-        }
-    }
-};
-
-// 팝업 생성 시 config 적용
-function onPopupCreated({ chartSelector, tableSelector, events }) {
-    chartSelector && this.createChart(chartSelector);
-    tableSelector && this.createTable(tableSelector);
-    events && this.bindPopupEvents(events);
-}
-```
-
-#### Config 설계 시 주의점
-
-**1. 과도한 config는 복잡성을 증가시킨다**
-
-```javascript
-// 과도한 config - 모든 것을 config로
-const config = {
-    containerSelector: '.popup',
-    titleSelector: '.title',
-    titleTag: 'h2',
-    titleClass: 'popup-title',
-    animationDuration: 300,
-    animationEasing: 'ease-in-out',
-    // ... 20개 더
-};
-```
-
-변경 가능성이 낮은 것까지 config로 빼면 오히려 사용이 어려워진다.
-
-**2. Config의 기본값을 제공하라**
-
-```javascript
-function renderChart(config, data) {
-    const {
-        xKey = 'x',
-        smooth = false,
-        optionBuilder = getLineChartOption
-    } = config;
-    // ...
-}
-```
-
-필수가 아닌 config에는 합리적인 기본값을 설정한다.
-
-#### Config 핵심 요약
-
-- **Config의 목적:** 추상화된 로직에 다형성을 부여한다
-- **Config의 대상:** 미리 알 수 없고, 컨텍스트마다 달라지는 값
-- **Config의 경계:** 변경 가능성이 높은 것만 config로, 나머지는 하드코딩
-- **Config의 구조:** 명확한 역할 분리 (데이터 매핑, 선택자, 스타일, 동작)
-
----
-
-### PopupMixin 패턴
-
-#### 왜 Mixin인가
-
-**상속 vs 조합:**
-
-```javascript
-// 상속 방식 - 경직된 구조
-class PopupComponent extends BaseComponent { ... }
-class ChartPopupComponent extends PopupComponent { ... }
-class TablePopupComponent extends PopupComponent { ... }
-class ChartTablePopupComponent extends ??? { ... }  // 다중 상속 불가
-
-// Mixin 방식 - 유연한 조합
-applyShadowPopupMixin(this, options);  // 기본 팝업
-applyEChartsMixin(this);               // + 차트 기능
-applyTabulatorMixin(this);             // + 테이블 기능
-```
-
-Mixin은 **필요한 기능만 선택적으로 조합**할 수 있다.
-
-#### PopupMixin 구조
-
-```
-PopupMixin
-├── applyShadowPopupMixin  - 기본 Shadow DOM 팝업
-├── applyEChartsMixin      - ECharts 차트 관리 (Popup 전용)
-└── applyTabulatorMixin    - Tabulator 테이블 관리 (Popup 전용)
-```
-
-**적용 순서:**
-
-```javascript
-// 1. 반드시 applyShadowPopupMixin 먼저
-applyShadowPopupMixin(this, {
-    getHTML: this.getPopupHTML,
-    getStyles: this.getPopupStyles,
-    onCreated: this.onPopupCreated
-});
-
-// 2. 필요한 Mixin 추가 (순서 무관)
-applyEChartsMixin(this);      // 차트 필요 시
-applyTabulatorMixin(this);    // 테이블 필요 시
-```
-
-#### applyShadowPopupMixin
-
-기본 Shadow DOM 팝업 기능을 제공한다.
-
-**제공 메서드:**
-
-| 메서드 | 역할 |
-|--------|------|
-| `createPopup()` | Shadow DOM 팝업 생성 |
-| `showPopup()` | 팝업 표시 (없으면 생성) |
-| `hidePopup()` | 팝업 숨김 |
-| `popupQuery(selector)` | Shadow DOM 내부 요소 선택 |
-| `popupQueryAll(selector)` | Shadow DOM 내부 요소 모두 선택 |
-| `bindPopupEvents(events)` | 이벤트 델리게이션 바인딩 |
-| `destroyPopup()` | 팝업 및 리소스 정리 |
-
-**사용 예시:**
-
-```javascript
-applyShadowPopupMixin(this, {
-    getHTML: () => '<div class="popup">...</div>',
-    getStyles: () => '.popup { background: #1a1f2e; }',
-    onCreated: (shadowRoot) => {
-        // 팝업 생성 후 초기화 로직
-    }
-});
-```
-
-#### applyEChartsMixin
-
-Shadow DOM 팝업 내에서 ECharts 차트를 관리한다.
-
-**제공 메서드:**
-
-| 메서드 | 역할 |
-|--------|------|
-| `createChart(selector)` | ECharts 인스턴스 생성 + ResizeObserver |
-| `getChart(selector)` | 인스턴스 조회 |
-| `updateChart(selector, option)` | setOption 호출 |
-
-**특징:**
-- `applyShadowPopupMixin` 이후 호출 필수
-- ResizeObserver로 컨테이너 크기 변경 자동 감지
-- `destroyPopup()` 호출 시 차트 자동 정리
-
-#### applyTabulatorMixin
-
-Shadow DOM 팝업 내에서 Tabulator 테이블을 관리한다.
-
-**제공 메서드:**
-
-| 메서드 | 역할 |
-|--------|------|
-| `createTable(selector, options)` | Tabulator 인스턴스 생성 + ResizeObserver |
-| `getTable(selector)` | 인스턴스 조회 |
-| `updateTable(selector, data)` | setData 호출 |
-| `updateTableOptions(selector, options)` | 컬럼/데이터 업데이트 |
-| `isTableReady(selector)` | 테이블 초기화 완료 여부 확인 |
-
-**특징:**
-- `applyShadowPopupMixin` 이후 호출 필수
-- Shadow DOM에 Tabulator CSS 자동 주입 (midnight 테마)
-- ResizeObserver로 컨테이너 크기 변경 자동 감지
-- `destroyPopup()` 호출 시 테이블 자동 정리
-- `tableBuilt` 이벤트로 초기화 완료 추적 → `isTableReady()`로 확인 가능
-- height 옵션 미지정 시 CSS height 적용됨 (JS 옵션이 CSS보다 우선순위 높음)
-
-> **실제 적용 사례**: [ECO 프로젝트 PDU 컴포넌트](Projects/ECO/README.md#pdu-컴포넌트-구조) - 탭 UI + 테이블 + 차트 조합
-
-#### destroyPopup 체이닝 패턴
-
-각 Mixin은 `destroyPopup`을 확장하여 자신의 리소스를 정리한다.
-
-```javascript
-// applyEChartsMixin 내부
-const originalDestroyPopup = instance.destroyPopup;
-instance.destroyPopup = function() {
-    // 차트 정리
-    fx.go(
-        [...instance._popup.charts.values()],
-        fx.each(({ chart, resizeObserver }) => {
-            resizeObserver.disconnect();
-            chart.dispose();
-        })
-    );
-    instance._popup.charts.clear();
-
-    // 원래 destroyPopup 호출
-    originalDestroyPopup.call(instance);
-};
-```
-
-**정리 순서 (역순):**
-
-```
-destroyPopup() 호출
-    ↓
-applyTabulatorMixin: 테이블 정리
-    ↓
-applyEChartsMixin: 차트 정리
-    ↓
-applyShadowPopupMixin: 이벤트 정리 + DOM 제거
-```
-
----
-
-### PopupMixin.js 전체 소스
-
-```javascript
-/*
- * PopupMixin.js
- *
- * Shadow DOM Popup 전용 Mixin 모음
- *
- * ─────────────────────────────────────────────────────────────
- * 사용 가능한 Mixin
- * ─────────────────────────────────────────────────────────────
- *
- * 1. applyShadowPopupMixin - 기본 Shadow DOM 팝업
- *    - 팝업 생성/표시/숨김
- *    - DOM 쿼리
- *    - 이벤트 바인딩
- *
- * 2. applyEChartsMixin - ECharts 차트 관리 (Popup 전용)
- *    - applyShadowPopupMixin 이후 호출
- *    - 차트 생성/업데이트/조회
- *    - ResizeObserver 자동 연결
- *
- * 3. applyTabulatorMixin - Tabulator 테이블 관리 (Popup 전용)
- *    - applyShadowPopupMixin 이후 호출
- *    - Shadow DOM CSS 자동 주입
- *    - 테이블 생성/업데이트/조회
- *
- * ─────────────────────────────────────────────────────────────
- * 사용 예시
- * ─────────────────────────────────────────────────────────────
- *
- *   const { applyShadowPopupMixin, applyEChartsMixin, applyTabulatorMixin } = PopupMixin;
- *
- *   applyShadowPopupMixin(this, {
- *       getHTML: () => '<div class="popup">...</div>',
- *       getStyles: () => '.popup { ... }',
- *       onCreated: (shadowRoot) => { ... }
- *   });
- *
- *   applyEChartsMixin(this);    // 차트 필요 시
- *   applyTabulatorMixin(this);  // 테이블 필요 시
- *
- * ─────────────────────────────────────────────────────────────
- * 표시/숨김 방식
- * ─────────────────────────────────────────────────────────────
- *
- * - showPopup(): host.style.display = 'block'
- * - hidePopup(): host.style.display = 'none'
- *
- * opacity, visibility, transform 등 다른 방식 필요 시 수정 필요.
- * ─────────────────────────────────────────────────────────────
- */
-
-const PopupMixin = {};
-
-/**
- * ─────────────────────────────────────────────────────────────
- * applyShadowPopupMixin - 기본 Shadow DOM 팝업
- * ─────────────────────────────────────────────────────────────
- *
- * 제공 메서드:
- * - createPopup()      : Shadow DOM 팝업 생성
- * - showPopup()        : 팝업 표시
- * - hidePopup()        : 팝업 숨김
- * - popupQuery()       : Shadow DOM 내부 요소 선택
- * - popupQueryAll()    : Shadow DOM 내부 요소 모두 선택
- * - bindPopupEvents()  : 이벤트 델리게이션 바인딩
- * - destroyPopup()     : 팝업 및 리소스 정리
- */
-PopupMixin.applyShadowPopupMixin = function(instance, options) {
-    const { getHTML, getStyles, onCreated } = options;
-
-    // Internal state
-    instance._popup = {
-        host: null,
-        shadowRoot: null,
-        eventCleanups: [],
-    };
-
-    /**
-     * Shadow DOM 팝업 생성
-     */
-    instance.createPopup = function() {
-        if (instance._popup.host) return instance._popup.shadowRoot;
-
-        // Shadow DOM 호스트 생성
-        instance._popup.host = document.createElement('div');
-        instance._popup.host.id = `popup-${instance.id}`;
-        instance._popup.shadowRoot = instance._popup.host.attachShadow({ mode: 'open' });
-
-        // 스타일 + HTML 삽입
-        instance._popup.shadowRoot.innerHTML = `
-            <style>${getStyles.call(instance)}</style>
-            ${getHTML.call(instance)}
-        `;
-
-        // 페이지에 추가
-        instance.page.appendElement.appendChild(instance._popup.host);
-
-        // 콜백
-        if (onCreated) {
-            onCreated.call(instance, instance._popup.shadowRoot);
-        }
-
-        return instance._popup.shadowRoot;
-    };
-
-    /**
-     * 팝업 표시
-     */
-    instance.showPopup = function() {
-        if (!instance._popup.host) {
-            instance.createPopup();
-        }
-        instance._popup.host.style.display = 'block';
-    };
-
-    /**
-     * 팝업 숨김
-     */
-    instance.hidePopup = function() {
-        if (instance._popup.host) {
-            instance._popup.host.style.display = 'none';
-        }
-    };
-
-    /**
-     * Shadow DOM 내부 요소 선택
-     */
-    instance.popupQuery = function(selector) {
-        return instance._popup.shadowRoot?.querySelector(selector);
-    };
-
-    /**
-     * Shadow DOM 내부 요소 모두 선택
-     */
-    instance.popupQueryAll = function(selector) {
-        return instance._popup.shadowRoot?.querySelectorAll(selector) || [];
-    };
-
-    /**
-     * 이벤트 델리게이션 기반 바인딩
-     *
-     * @param {Object} events - { eventType: { selector: handler } }
-     */
-    instance.bindPopupEvents = function(events) {
-        fx.each(([eventType, handlers]) => {
-            const listener = (e) => {
-                fx.each(([selector, handler]) => {
-                    if (e.target.closest(selector)) {
-                        handler.call(instance, e);
-                    }
-                }, Object.entries(handlers));
-            };
-
-            instance._popup.shadowRoot.addEventListener(eventType, listener);
-            instance._popup.eventCleanups.push(() => {
-                instance._popup.shadowRoot.removeEventListener(eventType, listener);
-            });
-        }, Object.entries(events));
-    };
-
-    /**
-     * 팝업 및 리소스 정리
-     */
-    instance.destroyPopup = function() {
-        // 이벤트 정리
-        fx.each(cleanup => cleanup(), instance._popup.eventCleanups);
-        instance._popup.eventCleanups = [];
-
-        // DOM 제거
-        if (instance._popup.host) {
-            instance._popup.host.remove();
-            instance._popup.host = null;
-            instance._popup.shadowRoot = null;
-        }
-    };
-};
-
-/**
- * ─────────────────────────────────────────────────────────────
- * applyEChartsMixin - ECharts 차트 관리 (Popup 전용)
- * ─────────────────────────────────────────────────────────────
- *
- * applyShadowPopupMixin 이후에 호출해야 합니다.
- *
- * 제공 메서드:
- * - createChart(selector)         : ECharts 인스턴스 생성 + ResizeObserver
- * - getChart(selector)            : 인스턴스 조회
- * - updateChart(selector, option) : setOption 호출
- *
- * destroyPopup() 호출 시 차트 자동 정리
- */
-PopupMixin.applyEChartsMixin = function(instance) {
-    if (!instance._popup) {
-        console.warn('[PopupMixin] applyEChartsMixin requires applyShadowPopupMixin to be called first');
-        return;
-    }
-
-    // 차트 저장소 추가
-    instance._popup.charts = new Map();  // selector → { chart, resizeObserver }
-
-    /**
-     * Shadow DOM 내부에 ECharts 인스턴스 생성
-     */
-    instance.createChart = function(selector) {
-        if (instance._popup.charts.has(selector)) {
-            return instance._popup.charts.get(selector).chart;
-        }
-
-        const container = instance.popupQuery(selector);
-        if (!container) {
-            console.warn(`[PopupMixin] Chart container not found: ${selector}`);
-            return null;
-        }
-
-        const chart = echarts.init(container);
-
-        const resizeObserver = new ResizeObserver(() => {
-            chart.resize();
-        });
-        resizeObserver.observe(container);
-
-        instance._popup.charts.set(selector, { chart, resizeObserver });
-
-        return chart;
-    };
-
-    /**
-     * 차트 인스턴스 조회
-     */
-    instance.getChart = function(selector) {
-        return instance._popup.charts.get(selector)?.chart || null;
-    };
-
-    /**
-     * 차트 옵션 업데이트
-     */
-    instance.updateChart = function(selector, option) {
-        const chart = instance.getChart(selector);
-        if (!chart) {
-            console.warn(`[PopupMixin] Chart not found: ${selector}`);
-            return;
-        }
-
-        try {
-            chart.setOption(option);
-        } catch (e) {
-            console.error(`[PopupMixin] Chart setOption error:`, e);
-        }
-    };
-
-    // destroyPopup 확장 - 차트 정리 추가
-    const originalDestroyPopup = instance.destroyPopup;
-    instance.destroyPopup = function() {
-        // 차트 정리
-        fx.each(({ chart, resizeObserver }) => {
-            resizeObserver.disconnect();
-            chart.dispose();
-        }, instance._popup.charts.values());
-        instance._popup.charts.clear();
-
-        // 원래 destroyPopup 호출
-        originalDestroyPopup.call(instance);
-    };
-};
-
-/**
- * ─────────────────────────────────────────────────────────────
- * applyTabulatorMixin - Shadow DOM 내 Tabulator 테이블 믹스인 (Popup 전용)
- * ─────────────────────────────────────────────────────────────
- *
- * Shadow DOM 팝업 내에서 Tabulator 테이블을 관리합니다.
- * applyShadowPopupMixin과 함께 사용됩니다.
- *
- * 사용법:
- *   // applyShadowPopupMixin 이후에 호출
- *   applyTabulatorMixin(this);
- *
- * 테이블 사용:
- *   this.createTable('.table-container', options);  // Tabulator 생성 + ResizeObserver
- *   this.updateTable('.table-container', data);     // setData
- *   this.getTable('.table-container');              // 인스턴스 조회
- *   this.isTableReady('.table-container');          // 초기화 완료 여부 확인
- *   // destroyPopup() 호출 시 테이블 자동 정리 (applyShadowPopupMixin 확장)
- *
- * 옵션 빌더 패턴:
- *   const tableConfig = {
- *       columns: [...],
- *       optionBuilder: (config, data) => ({ ...tabulatorOptions })
- *   };
- *   const options = tableConfig.optionBuilder(tableConfig, data);
- *   this.createTable('.table-container', options);
- *
- * ─────────────────────────────────────────────────────────────
- * Shadow DOM에서 Tabulator CSS 사용하기
- * ─────────────────────────────────────────────────────────────
- *
- * 문제:
- *   Shadow DOM은 외부 스타일시트와 격리됩니다.
- *   메인 페이지에서 Tabulator CSS를 import해도 Shadow DOM에는 적용되지 않음.
- *
- * 해결:
- *   CSS 파일을 fetch하여 Shadow DOM에 <style> 태그로 주입합니다.
- *   - 경로: client/common/libs/tabulator/tabulator_midnight.min.css
- *   - 테마: midnight (다크 모드)
- *
- * 커스터마이징:
- *   midnight 테마가 이미 다크 모드를 지원하므로 최소한의 오버라이드만 권장.
- *   권장 스타일: border-radius, 헤더 강조선, 배경 투명화, 행 높이
- *   피해야 할 스타일: 색상 오버라이드 (테마가 이미 처리)
- * ─────────────────────────────────────────────────────────────
- */
-PopupMixin.applyTabulatorMixin = function(instance) {
-    // _popup이 없으면 applyShadowPopupMixin이 먼저 호출되지 않은 것
-    if (!instance._popup) {
-        console.warn('[PopupMixin] applyTabulatorMixin requires applyShadowPopupMixin to be called first');
-        return;
-    }
-
-    // 테이블 저장소 추가
-    instance._popup.tables = new Map();  // selector → { table, resizeObserver, state }
-    instance._popup.tabulatorCssInjected = false;
-
-    // Tabulator CSS 파일 경로 (midnight 테마 - 다크 모드)
-    const TABULATOR_CSS_PATH = 'client/common/libs/tabulator/tabulator_midnight.min.css';
-
-    /**
-     * Shadow DOM에 Tabulator CSS 파일 주입 (최초 1회)
-     * CSS 파일을 fetch하여 <style> 태그로 Shadow DOM에 주입
-     */
-    async function injectTabulatorCSS() {
-        if (instance._popup.tabulatorCssInjected) return;
-
-        const shadowRoot = instance._popup.host?.shadowRoot;
-        if (!shadowRoot) return;
-
-        instance._popup.tabulatorCssInjected = true; // 중복 요청 방지
-
-        try {
-            const response = await fetch(TABULATOR_CSS_PATH);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch Tabulator CSS: ${response.status}`);
-            }
-            const cssText = await response.text();
-
-            const style = document.createElement('style');
-            style.setAttribute('data-tabulator-theme', 'midnight');
-            style.textContent = cssText;
-            shadowRoot.appendChild(style);
-
-            console.log('[PopupMixin] Tabulator CSS injected into Shadow DOM');
-        } catch (e) {
-            console.error('[PopupMixin] Failed to inject Tabulator CSS:', e);
-            instance._popup.tabulatorCssInjected = false; // 실패 시 재시도 허용
-        }
-    }
-
-    /**
-     * Shadow DOM 내부에 Tabulator 인스턴스 생성
-     *
-     * @param {string} selector - 테이블 컨테이너 선택자
-     * @param {Object} options - Tabulator 옵션 (columns, layout 등)
-     * @returns {Object|null} Tabulator 인스턴스
-     */
-    instance.createTable = function(selector, options = {}) {
-        if (instance._popup.tables.has(selector)) {
-            return instance._popup.tables.get(selector).table;
-        }
-
-        const container = instance.popupQuery(selector);
-        if (!container) {
-            console.warn(`[PopupMixin] Table container not found: ${selector}`);
-            return null;
-        }
-
-        // Tabulator 기본 CSS를 Shadow DOM에 주입
-        injectTabulatorCSS();
-
-        // 기본 옵션과 병합
-        const defaultOptions = {
-            layout: 'fitColumns',
-            responsiveLayout: 'collapse',
-        };
-
-        // 초기화 상태 추적
-        const tableState = { initialized: false };
-
-        const table = new Tabulator(container, { ...defaultOptions, ...options });
-
-        // tableBuilt 이벤트로 초기화 완료 감지
-        table.on('tableBuilt', () => {
-            tableState.initialized = true;
-        });
-
-        // ResizeObserver로 컨테이너 크기 변경 감지
-        const resizeObserver = new ResizeObserver(() => {
-            // Tabulator 초기화 완료 후에만 redraw
-            if (tableState.initialized) {
-                table.redraw();
-            }
-        });
-        resizeObserver.observe(container);
-
-        instance._popup.tables.set(selector, { table, resizeObserver, state: tableState });
-
-        return table;
-    };
-
-    /**
-     * 테이블 인스턴스 조회
-     *
-     * @param {string} selector - 테이블 컨테이너 선택자
-     * @returns {Object|null} Tabulator 인스턴스
-     */
-    instance.getTable = function(selector) {
-        return instance._popup.tables.get(selector)?.table || null;
-    };
-
-    /**
-     * 테이블 초기화 완료 여부 확인
-     *
-     * @param {string} selector - 테이블 컨테이너 선택자
-     * @returns {boolean} 초기화 완료 여부
-     */
-    instance.isTableReady = function(selector) {
-        return instance._popup.tables.get(selector)?.state?.initialized || false;
-    };
-
-    /**
-     * 테이블 데이터 업데이트
-     *
-     * @param {string} selector - 테이블 컨테이너 선택자
-     * @param {Array} data - 테이블 데이터 배열
-     */
-    instance.updateTable = function(selector, data) {
-        const table = instance.getTable(selector);
-        if (!table) {
-            console.warn(`[PopupMixin] Table not found: ${selector}`);
-            return;
-        }
-
-        try {
-            table.setData(data);
-        } catch (e) {
-            console.error(`[PopupMixin] Table setData error:`, e);
-        }
-    };
-
-    /**
-     * 테이블 옵션 업데이트 (columns 변경 등)
-     *
-     * @param {string} selector - 테이블 컨테이너 선택자
-     * @param {Object} options - 업데이트할 옵션
-     */
-    instance.updateTableOptions = function(selector, options) {
-        const table = instance.getTable(selector);
-        if (!table) {
-            console.warn(`[PopupMixin] Table not found: ${selector}`);
-            return;
-        }
-
-        try {
-            if (options.columns) {
-                table.setColumns(options.columns);
-            }
-            if (options.data) {
-                table.setData(options.data);
-            }
-        } catch (e) {
-            console.error(`[PopupMixin] Table updateOptions error:`, e);
-        }
-    };
-
-    // destroyPopup 확장 - 테이블 정리 추가
-    const originalDestroyPopup = instance.destroyPopup;
-    instance.destroyPopup = function() {
-        // 테이블 정리
-        fx.each(({ table, resizeObserver }) => {
-            resizeObserver.disconnect();
-            table.off();  // 이벤트 해제
-            table.destroy();
-        }, instance._popup.tables.values());
-        instance._popup.tables.clear();
-
-        // 원래 destroyPopup 호출 (차트, 이벤트, DOM 정리)
-        originalDestroyPopup.call(instance);
-    };
-};
-```
-
----
-
-### 완전한 예제: TempHumiditySensor (ECO 프로젝트)
-
-이중 축 차트(온도+습도)를 가진 자기 완결 3D 컴포넌트입니다.
-
-> **실제 구현 코드**: `Projects/ECO/page/components/TempHumiditySensor/`
-
-**구조:**
-
-```
-TempHumiditySensor/
-├── views/
-│   └── component.html    # Shadow DOM 팝업 템플릿
-├── styles/
-│   └── component.css     # 팝업 스타일
-├── scripts/
-│   ├── register.js       # 초기화 + 메서드 정의
-│   └── beforeDestroy.js  # 정리
-└── preview.html          # 독립 테스트
-```
-
-**특징:**
-- 3D 오브젝트 클릭 → `showDetail()` → Shadow DOM 팝업 표시
-- 이중 축 ECharts 차트 (온도 좌측, 습도 우측)
-- Config 기반 설계 (baseInfoConfig, sensorInfoConfig, chartConfig)
-
-#### register.js
-
-```javascript
-/**
- * TempHumiditySensor - Self-Contained 3D Component
- *
- * 온습도 센서 컴포넌트
- * - 현재 온도/습도 표시
- * - 온습도 히스토리 차트 (이중 축)
- */
-
-const { bind3DEvents, fetchData } = Wkit;
-const { applyShadowPopupMixin, applyEChartsMixin } = PopupMixin;
-
-// ======================
-// TEMPLATE HELPER
-// ======================
-function extractTemplate(htmlCode, templateId) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlCode, 'text/html');
-    const template = doc.querySelector(`template#${templateId}`);
-    return template?.innerHTML || '';
-}
-
-function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-initComponent.call(this);
-
-function initComponent() {
-    // ======================
-    // DATA DEFINITION
-    // ======================
-    const assetId = this.setter.ecoAssetInfo?.assetId || 'sensor-001';
-
-    this.datasetInfo = [
-        { datasetName: 'sensor', param: { id: assetId }, render: ['renderSensorInfo'] },
-        { datasetName: 'sensorHistory', param: { id: assetId }, render: ['renderChart'] }
-    ];
-
-    // ======================
-    // DATA CONFIG
-    // ======================
-    this.baseInfoConfig = [
-        { key: 'name', selector: '.sensor-name' },
-        { key: 'zone', selector: '.sensor-zone' },
-        { key: 'status', selector: '.sensor-status', dataAttr: 'status' }
-    ];
-
-    this.sensorInfoConfig = [
-        { key: 'temperature', selector: '.sensor-temp' },
-        { key: 'humidity', selector: '.sensor-humidity' }
-    ];
-
-    this.chartConfig = {
-        xKey: 'timestamps',
-        series: [
-            { yKey: 'temperatures', name: 'Temperature', color: '#3b82f6', yAxisIndex: 0 },
-            { yKey: 'humidities', name: 'Humidity', color: '#22c55e', yAxisIndex: 1 }
-        ],
-        yAxis: [
-            { name: '°C', position: 'left' },
-            { name: '%', position: 'right' }
-        ],
-        optionBuilder: getDualAxisChartOption
-    };
-
-    // ======================
-    // RENDER FUNCTIONS (bind(this, config) 패턴)
-    // ======================
-    this.renderSensorInfo = renderSensorInfo.bind(this, [...this.baseInfoConfig, ...this.sensorInfoConfig]);
-    this.renderChart = renderChart.bind(this, this.chartConfig);
-
-    // ======================
-    // PUBLIC METHODS
-    // ======================
-    this.showDetail = showDetail.bind(this);
-    this.hideDetail = hideDetail.bind(this);
-
-    // ======================
-    // CUSTOM EVENTS
-    // ======================
-    this.customEvents = {
-        click: '@sensorClicked'
-    };
-
-    bind3DEvents(this, this.customEvents);
-
-    // ======================
-    // TEMPLATE CONFIG
-    // ======================
-    this.templateConfig = {
-        popup: 'popup-sensor'
-    };
-
-    this.popupCreatedConfig = {
-        chartSelector: '.chart-container',
-        events: {
-            click: {
-                '.close-btn': () => this.hideDetail()
-            }
-        }
-    };
-
-    // ======================
-    // POPUP SETUP (bind 패턴 사용)
-    // ======================
-    const { htmlCode, cssCode } = this.properties.publishCode || {};
-
-    this.getPopupHTML = () => extractTemplate(htmlCode || '', this.templateConfig.popup);
-    this.getPopupStyles = () => cssCode || '';
-    this.onPopupCreated = onPopupCreated.bind(this, this.popupCreatedConfig);
-
-    applyShadowPopupMixin(this, {
-        getHTML: this.getPopupHTML,
-        getStyles: this.getPopupStyles,
-        onCreated: this.onPopupCreated
-    });
-
-    applyEChartsMixin(this);
-
-    console.log('[TempHumiditySensor] Registered:', assetId);
-}
-
-// ======================
-// RENDER FUNCTIONS (config를 첫 번째 인자로 받음)
-// ======================
-function renderSensorInfo(config, data) {
-    fx.go(
-        config,
-        fx.each(({ key, selector, dataAttr }) => {
-            const el = this.popupQuery(selector);
-            if (el) {
-                el.textContent = data[key];
-                if (dataAttr) el.dataset[dataAttr] = data[key];
-            }
-        })
-    );
-}
-
-function renderChart(config, data) {
-    const { optionBuilder, ...chartConfig } = config;
-    const option = optionBuilder(chartConfig, data);
-    this.updateChart('.chart-container', option);
-}
-
-// ======================
-// POPUP LIFECYCLE
-// ======================
-function onPopupCreated({ chartSelector, events }) {
-    if (chartSelector) this.createChart(chartSelector);
-    if (events) this.bindPopupEvents(events);
-}
-
-// ======================
-// CHART OPTION BUILDER (이중 축)
-// ======================
-function getDualAxisChartOption(config, data) {
-    const { xKey, series: seriesConfig, yAxis: yAxisConfig } = config;
-
-    return {
-        tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(26, 31, 46, 0.95)',
-            borderColor: '#2a3142',
-            textStyle: { color: '#e0e6ed', fontSize: 12 }
-        },
-        legend: {
-            data: seriesConfig.map(s => s.name),
-            top: 8,
-            textStyle: { color: '#8892a0', fontSize: 11 }
-        },
-        grid: {
-            left: 50,
-            right: 50,
-            top: 40,
-            bottom: 24
-        },
-        xAxis: {
-            type: 'category',
-            data: data[xKey],
-            axisLine: { lineStyle: { color: '#333' } },
-            axisLabel: { color: '#888', fontSize: 10 }
-        },
-        yAxis: yAxisConfig.map((axis, index) => ({
-            type: 'value',
-            name: axis.name,
-            position: axis.position,
-            axisLine: { show: true, lineStyle: { color: '#333' } },
-            axisLabel: { color: '#888', fontSize: 10 },
-            splitLine: { lineStyle: { color: index === 0 ? '#333' : 'transparent' } }
-        })),
-        series: seriesConfig.map(({ yKey, name, color, yAxisIndex }) => ({
-            name: name,
-            type: 'line',
-            yAxisIndex: yAxisIndex,
-            data: data[yKey],
-            smooth: true,
-            symbol: 'none',
-            lineStyle: { color: color, width: 2 },
-            areaStyle: {
-                color: {
-                    type: 'linear',
-                    x: 0, y: 0, x2: 0, y2: 1,
-                    colorStops: [
-                        { offset: 0, color: hexToRgba(color, 0.2) },
-                        { offset: 1, color: hexToRgba(color, 0) }
-                    ]
-                }
-            }
-        }))
-    };
-}
-
-// ======================
-// PUBLIC METHODS
-// ======================
-function showDetail() {
-    this.showPopup();
-
-    fx.go(
-        this.datasetInfo,
-        fx.each(({ datasetName, param, render }) =>
-            fx.go(
-                fetchData(this.page, datasetName, param),
-                result => result?.response?.data,
-                data => data && render.forEach(fn => this[fn](data))
-            )
-        )
-    ).catch(e => {
-        console.error('[TempHumiditySensor]', e);
-        this.hidePopup();
-    });
-}
-
-function hideDetail() {
-    this.hidePopup();
-}
-```
-
-#### beforeDestroy.js
-
-```javascript
-/**
- * TempHumiditySensor - Destroy Script
- * 컴포넌트 정리 (Shadow DOM 팝업 + 차트)
- */
-
-this.destroyPopup();
-console.log('[TempHumiditySensor] Destroyed:', this.setter?.ecoAssetInfo?.assetId);
-```
-
----
-
-**버전:** 2.1.0
-**작성일:** 2025-12-22
-**참조:** Utils/PopupMixin.js, Projects/IPSILON_3D/page/components/
-
-**변경 이력:**
-
-| 버전 | 날짜 | 변경 내용 |
-|------|------|-----------|
-| 2.1.0 | 2025-12-30 | 완전한 예제를 ECO TempHumiditySensor로 교체, 예제 2 삭제 |
-| 2.0.0 | 2025-12-22 | Configuration 설계 원칙, PopupMixin 패턴, 완전한 예제 추가 |
-| 1.2.0 | 2025-12-16 | publishCode 연동 완료 |
-| 1.1.0 | 2025-12-16 | Template 기반 구조 반영 |
-| 1.0.0 | 2025-12-15 | 초기 작성 |
-
----
-
 ## fx.go 기반 에러 핸들링 가이드
 
 ### 목적
@@ -2778,6 +1519,454 @@ function setupInternalHandlers() {
 }
 setupInternalHandlers.call(this);
 ```
+
+---
+
+## 부록 D: Configuration 설계 원칙
+
+### Config의 본질
+
+Config는 **추상화된 구조에 다형성을 부여하기 위한 주입 옵션**이다.
+
+**핵심 질문:** "이 로직에서 미리 알 수 없는 부분은 무엇인가?"
+
+그 답이 config가 된다.
+
+### 왜 Config가 필요한가
+
+**문제 상황:**
+
+팝업 템플릿에 센서 정보를 렌더링해야 한다고 가정하자.
+
+```javascript
+// 하드코딩된 접근
+function renderSensorInfo(data) {
+    this.popupQuery('.sensor-name').textContent = data.name;
+    this.popupQuery('.sensor-zone').textContent = data.zone;
+    this.popupQuery('.sensor-temp').textContent = data.temperature;
+}
+```
+
+이 코드는 특정 템플릿 구조를 전제한다. `.sensor-name`, `.sensor-zone`, `.sensor-temp`라는 선택자가 반드시 존재해야 한다.
+
+다른 템플릿을 사용하려면? 함수를 새로 작성해야 한다.
+
+**Config의 해결:**
+
+```javascript
+// Config 기반 접근
+const sensorInfoConfig = [
+    { key: 'name', selector: '.sensor-name' },
+    { key: 'zone', selector: '.sensor-zone' },
+    { key: 'temperature', selector: '.sensor-temp' }
+];
+
+function renderInfo(config, { response }) {
+    const { data } = response;
+    if (!data) return;
+    config.forEach(({ key, selector }) => {
+        this.popupQuery(selector).textContent = data[key];
+    });
+}
+```
+
+이제 `renderInfo`는 어떤 템플릿이든 처리할 수 있다. 템플릿이 달라지면 config만 바꾸면 된다.
+
+### Config의 경계: 무엇을 config로 빼야 하는가
+
+**판단 기준:**
+
+| 질문 | Yes → Config | No → 하드코딩 |
+|------|--------------|---------------|
+| 이 값이 템플릿/컨텍스트마다 달라지는가? | ✓ | |
+| 이 값을 미리 알 수 없는가? | ✓ | |
+| 이 값이 비즈니스 요구에 따라 변경될 가능성이 있는가? | ✓ | |
+
+**경계의 예시:**
+
+Config로 빼야 하는 것:
+- DOM 선택자 (템플릿 구조에 의존)
+- 데이터 필드 매핑 (API 응답 구조에 의존)
+- 스타일 값 (디자인 요구사항에 의존)
+- 차트 시리즈 정의 (데이터 종류에 의존)
+
+하드코딩해도 되는 것:
+- 렌더링 로직 자체 (config를 순회하며 값을 삽입하는 방식)
+- 차트 라이브러리 호출 방식 (echarts.setOption의 구조)
+- 이벤트 바인딩 메커니즘 (델리게이션 패턴)
+
+### 실제 적용 패턴
+
+**패턴 1: 정보 렌더링 Config**
+
+문제: 팝업 템플릿의 구조를 렌더링 함수가 미리 알 수 없다.
+
+해결: 선택자와 데이터 키의 매핑을 config로 분리한다.
+
+```javascript
+// Config 정의
+this.baseInfoConfig = [
+    { key: 'name', selector: '.asset-name' },
+    { key: 'zone', selector: '.asset-zone' },
+    { key: 'status', selector: '.asset-status', dataAttr: 'status' }
+];
+
+this.sensorInfoConfig = [
+    { key: 'temperature', selector: '.sensor-temp' },
+    { key: 'humidity', selector: '.sensor-humidity' }
+];
+
+// 렌더링 함수 - 템플릿 구조를 모름
+function renderInfo(config, { response }) {
+    const { data } = response;
+    if (!data) return;
+    fx.go(
+        config,
+        fx.each(({ key, selector, dataAttr }) => {
+            const el = this.popupQuery(selector);
+            if (!el) return;
+            el.textContent = data[key];
+            if (dataAttr) el.dataset[dataAttr] = data[key];
+        })
+    );
+}
+
+// 사용: config를 바인딩하여 특화된 함수 생성
+this.renderSensorInfo = renderInfo.bind(this, [
+    ...this.baseInfoConfig,
+    ...this.sensorInfoConfig
+]);
+```
+
+| 필드 | 역할 | 왜 config인가 |
+|------|------|---------------|
+| key | API 응답에서 추출할 필드명 | API 구조가 컴포넌트마다 다름 |
+| selector | DOM에서 찾을 선택자 | 템플릿 구조가 컴포넌트마다 다름 |
+| dataAttr | data-* 속성으로 설정할 값 | CSS 선택자 활용 여부가 다름 |
+
+**패턴 2: 차트 Config**
+
+문제: 차트의 데이터 구조와 시각적 표현이 컴포넌트마다 다르다.
+
+해결: 데이터 매핑과 스타일을 config로, 차트 옵션 생성 로직은 별도 함수로 분리한다.
+
+```javascript
+// Config 정의
+this.chartConfig = {
+    xKey: 'timestamps',
+    series: [
+        { yKey: 'temperatures', color: '#3b82f6', smooth: true, areaStyle: true },
+        { yKey: 'humidity', color: '#10b981', smooth: true }
+    ],
+    optionBuilder: getLineChartOption
+};
+
+// 옵션 빌더 - 차트 타입별로 존재
+function getLineChartOption(config, data) {
+    const { xKey, series } = config;
+    return {
+        xAxis: { data: data[xKey] },
+        series: series.map(({ yKey, color, smooth, areaStyle }) => ({
+            type: 'line',
+            data: data[yKey],
+            lineStyle: { color },
+            smooth: smooth ?? false,
+            areaStyle: areaStyle ? { opacity: 0.3 } : undefined
+        }))
+    };
+}
+
+// 렌더링 함수
+function renderChart(config, { response }) {
+    const { data } = response;
+    if (!data) return;
+    const { optionBuilder, ...chartConfig } = config;
+    const option = optionBuilder(chartConfig, data);
+    this.updateChart('.chart-container', option);
+}
+
+// 사용
+this.renderChart = renderChart.bind(this, this.chartConfig);
+```
+
+| 필드 | 역할 | 왜 config인가 |
+|------|------|---------------|
+| xKey | X축 데이터 필드명 | API 응답 구조가 다름 |
+| series[].yKey | Y축 데이터 필드명 | 표시할 데이터가 다름 |
+| series[].color | 선/영역 색상 | 디자인 요구사항이 다름 |
+| optionBuilder | 차트 옵션 생성 함수 | 차트 타입(line/bar/pie)이 다름 |
+
+**패턴 3: 테이블 Config**
+
+문제: 테이블의 컬럼 구조와 포매터가 컴포넌트마다 다르다.
+
+해결: Tabulator 컬럼 정의를 config로 분리한다.
+
+```javascript
+// Config 정의
+this.tableConfig = {
+    selector: '.table-container',
+    columns: [
+        { title: 'PID', field: 'pid', widthGrow: 1, hozAlign: 'right' },
+        { title: 'Name', field: 'name', widthGrow: 2 },
+        {
+            title: 'CPU',
+            field: 'cpu',
+            widthGrow: 1,
+            hozAlign: 'right',
+            formatter: (cell) => {
+                const value = cell.getValue();
+                const color = value > 25 ? '#ef4444' : value > 15 ? '#eab308' : '#22c55e';
+                return `<span style="color: ${color}">${value}%</span>`;
+            }
+        }
+    ],
+    optionBuilder: getTableOption
+};
+
+// 옵션 빌더
+function getTableOption(config, data) {
+    return {
+        layout: 'fitColumns',
+        height: 250,
+        initialSort: [{ column: 'cpu', dir: 'desc' }],
+        columns: config.columns
+    };
+}
+
+// 렌더링 함수
+function renderProcessTable(config, data) {
+    const { optionBuilder } = config;
+    const option = optionBuilder(config, data.processes);
+    this.updateTable('.table-container', data.processes, option);
+}
+```
+
+**패턴 4: 이벤트 Config**
+
+문제: 팝업 내 이벤트 핸들러의 선택자와 동작이 컴포넌트마다 다르다.
+
+해결: 이벤트 타입, 선택자, 핸들러의 매핑을 config로 분리한다.
+
+```javascript
+// Config 정의
+this.popupCreatedConfig = {
+    chartSelector: '.chart-container',
+    tableSelector: '.table-container',
+    events: {
+        click: {
+            '.close-btn': () => this.hideDetail(),
+            '.refresh-btn': () => this.refresh(),
+            '.tab-btn': (e) => this._switchTab(e.target.dataset.tab)
+        }
+    }
+};
+
+// 팝업 생성 시 config 적용
+function onPopupCreated({ chartSelector, tableSelector, events }) {
+    chartSelector && this.createChart(chartSelector);
+    tableSelector && this.createTable(tableSelector);
+    events && this.bindPopupEvents(events);
+}
+```
+
+### Config 설계 시 주의점
+
+**1. 과도한 config는 복잡성을 증가시킨다**
+
+```javascript
+// 과도한 config - 모든 것을 config로
+const config = {
+    containerSelector: '.popup',
+    titleSelector: '.title',
+    titleTag: 'h2',
+    titleClass: 'popup-title',
+    animationDuration: 300,
+    animationEasing: 'ease-in-out',
+    // ... 20개 더
+};
+```
+
+변경 가능성이 낮은 것까지 config로 빼면 오히려 사용이 어려워진다.
+
+**2. Config의 기본값을 제공하라**
+
+```javascript
+function renderChart(config, data) {
+    const {
+        xKey = 'x',
+        smooth = false,
+        optionBuilder = getLineChartOption
+    } = config;
+    // ...
+}
+```
+
+필수가 아닌 config에는 합리적인 기본값을 설정한다.
+
+### Config 핵심 요약
+
+- **Config의 목적:** 추상화된 로직에 다형성을 부여한다
+- **Config의 대상:** 미리 알 수 없고, 컨텍스트마다 달라지는 값
+- **Config의 경계:** 변경 가능성이 높은 것만 config로, 나머지는 하드코딩
+- **Config의 구조:** 명확한 역할 분리 (데이터 매핑, 선택자, 스타일, 동작)
+
+---
+
+## 부록 E: PopupMixin 패턴
+
+### 왜 Mixin인가
+
+**상속 vs 조합:**
+
+```javascript
+// 상속 방식 - 경직된 구조
+class PopupComponent extends BaseComponent { ... }
+class ChartPopupComponent extends PopupComponent { ... }
+class TablePopupComponent extends PopupComponent { ... }
+class ChartTablePopupComponent extends ??? { ... }  // 다중 상속 불가
+
+// Mixin 방식 - 유연한 조합
+applyShadowPopupMixin(this, options);  // 기본 팝업
+applyEChartsMixin(this);               // + 차트 기능
+applyTabulatorMixin(this);             // + 테이블 기능
+```
+
+Mixin은 **필요한 기능만 선택적으로 조합**할 수 있다.
+
+### PopupMixin 구조
+
+```
+PopupMixin
+├── applyShadowPopupMixin  - 기본 Shadow DOM 팝업
+├── applyEChartsMixin      - ECharts 차트 관리 (Popup 전용)
+└── applyTabulatorMixin    - Tabulator 테이블 관리 (Popup 전용)
+```
+
+**적용 순서:**
+
+```javascript
+// 1. 반드시 applyShadowPopupMixin 먼저
+applyShadowPopupMixin(this, {
+    getHTML: this.getPopupHTML,
+    getStyles: this.getPopupStyles,
+    onCreated: this.onPopupCreated
+});
+
+// 2. 필요한 Mixin 추가 (순서 무관)
+applyEChartsMixin(this);      // 차트 필요 시
+applyTabulatorMixin(this);    // 테이블 필요 시
+```
+
+### applyShadowPopupMixin
+
+기본 Shadow DOM 팝업 기능을 제공한다.
+
+**제공 메서드:**
+
+| 메서드 | 역할 |
+|--------|------|
+| `createPopup()` | Shadow DOM 팝업 생성 |
+| `showPopup()` | 팝업 표시 (없으면 생성) |
+| `hidePopup()` | 팝업 숨김 |
+| `popupQuery(selector)` | Shadow DOM 내부 요소 선택 |
+| `popupQueryAll(selector)` | Shadow DOM 내부 요소 모두 선택 |
+| `bindPopupEvents(events)` | 이벤트 델리게이션 바인딩 |
+| `destroyPopup()` | 팝업 및 리소스 정리 |
+
+**사용 예시:**
+
+```javascript
+applyShadowPopupMixin(this, {
+    getHTML: () => '<div class="popup">...</div>',
+    getStyles: () => '.popup { background: #1a1f2e; }',
+    onCreated: (shadowRoot) => {
+        // 팝업 생성 후 초기화 로직
+    }
+});
+```
+
+### applyEChartsMixin
+
+Shadow DOM 팝업 내에서 ECharts 차트를 관리한다.
+
+**제공 메서드:**
+
+| 메서드 | 역할 |
+|--------|------|
+| `createChart(selector)` | ECharts 인스턴스 생성 + ResizeObserver |
+| `getChart(selector)` | 인스턴스 조회 |
+| `updateChart(selector, option)` | setOption 호출 |
+
+**특징:**
+- `applyShadowPopupMixin` 이후 호출 필수
+- ResizeObserver로 컨테이너 크기 변경 자동 감지
+- `destroyPopup()` 호출 시 차트 자동 정리
+
+### applyTabulatorMixin
+
+Shadow DOM 팝업 내에서 Tabulator 테이블을 관리한다.
+
+**제공 메서드:**
+
+| 메서드 | 역할 |
+|--------|------|
+| `createTable(selector, options)` | Tabulator 인스턴스 생성 + ResizeObserver |
+| `getTable(selector)` | 인스턴스 조회 |
+| `updateTable(selector, data)` | setData 호출 |
+| `updateTableOptions(selector, options)` | 컬럼/데이터 업데이트 |
+| `isTableReady(selector)` | 테이블 초기화 완료 여부 확인 |
+
+**특징:**
+- `applyShadowPopupMixin` 이후 호출 필수
+- Shadow DOM에 Tabulator CSS 자동 주입 (midnight 테마)
+- ResizeObserver로 컨테이너 크기 변경 자동 감지
+- `destroyPopup()` 호출 시 테이블 자동 정리
+- `tableBuilt` 이벤트로 초기화 완료 추적 → `isTableReady()`로 확인 가능
+- height 옵션 미지정 시 CSS height 적용됨 (JS 옵션이 CSS보다 우선순위 높음)
+
+> **실제 적용 사례**: [ECO 프로젝트 PDU 컴포넌트](Projects/ECO/README.md#pdu-컴포넌트-구조) - 탭 UI + 테이블 + 차트 조합
+
+### destroyPopup 체이닝 패턴
+
+각 Mixin은 `destroyPopup`을 확장하여 자신의 리소스를 정리한다.
+
+```javascript
+// applyEChartsMixin 내부
+const originalDestroyPopup = instance.destroyPopup;
+instance.destroyPopup = function() {
+    // 차트 정리
+    fx.go(
+        [...instance._popup.charts.values()],
+        fx.each(({ chart, resizeObserver }) => {
+            resizeObserver.disconnect();
+            chart.dispose();
+        })
+    );
+    instance._popup.charts.clear();
+
+    // 원래 destroyPopup 호출
+    originalDestroyPopup.call(instance);
+};
+```
+
+**정리 순서 (역순):**
+
+```
+destroyPopup() 호출
+    ↓
+applyTabulatorMixin: 테이블 정리
+    ↓
+applyEChartsMixin: 차트 정리
+    ↓
+applyShadowPopupMixin: 이벤트 정리 + DOM 제거
+```
+
+---
+
+### PopupMixin.js 전체 소스
+
+참조: [Utils/PopupMixin.js](Utils/PopupMixin.js)
 
 ### 생성/정리 매칭 테이블 (전체)
 
