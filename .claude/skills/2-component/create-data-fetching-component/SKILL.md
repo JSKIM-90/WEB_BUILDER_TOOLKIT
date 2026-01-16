@@ -1,6 +1,6 @@
 ---
-name: create-self-contained-component
-description: 3D 환경에서 사용하는 자기완결 컴포넌트를 생성합니다. 페이지에 의존하지 않고 스스로 데이터를 fetch하며, Shadow DOM 팝업을 사용합니다. Use when creating 3D asset components, self-contained components with datasetInfo, or components with Shadow DOM popups.
+name: create-data-fetching-component
+description: 컴포넌트가 직접 데이터를 fetch하는 자기완결 컴포넌트를 생성합니다. 페이지 제어 없이 datasetInfo와 Wkit.fetchData로 독립 동작합니다. Use when creating components that fetch their own data via datasetInfo, independent widgets, or 3D scene components.
 ---
 
 # 자기완결 컴포넌트 생성
@@ -27,14 +27,18 @@ Figma MCP는 필요하지 않습니다.
 
 ```
 RNBT_architecture/Projects/[프로젝트명]/page/components/[ComponentName]/
-├── views/component.html       # 컴포넌트 마크업 (최소한)
-├── styles/component.css       # 컴포넌트 스타일 (최소한)
+├── views/component.html       # 컴포넌트 마크업 또는 팝업 마크업 (3D 연동 시)
+├── styles/component.css       # 컴포넌트 스타일 또는 팝업 스타일 (3D 연동 시)
 ├── scripts/
 │   ├── register.js            # datasetInfo + 팝업 + Public Methods
 │   └── beforeDestroy.js       # destroyPopup 호출
 ├── preview.html               # Mock 데이터 + 팝업 테스트
 └── README.md                  # 컴포넌트 문서 (필수)
 ```
+
+**views/component.html, styles/component.css 용도:**
+- **일반 컴포넌트**: 컴포넌트 자체의 UI 마크업/스타일
+- **3D 연동 컴포넌트**: 3D 씬에서 호출하는 팝업 UI 마크업/스타일 (컴포넌트 본체는 3D 씬 내부)
 
 ---
 

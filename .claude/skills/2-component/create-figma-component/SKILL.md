@@ -1,6 +1,6 @@
 ---
-name: create-component
-description: 정적 HTML/CSS를 RNBT 동적 컴포넌트로 변환합니다. Figma Conversion에서 생성된 정적 파일을 RNBT_architecture 패턴에 맞게 동적 컴포넌트로 변환합니다. Use when converting static HTML to dynamic components, creating RNBT components, or implementing components with data binding and event handling.
+name: create-figma-component
+description: Figma에서 변환된 정적 HTML/CSS를 RNBT 동적 컴포넌트로 변환합니다. 페이지가 GlobalDataPublisher로 데이터를 제어하는 컴포넌트입니다. Use when converting Figma-based static HTML to dynamic components with GlobalDataPublisher data binding.
 ---
 
 # RNBT 동적 컴포넌트 생성
@@ -782,7 +782,7 @@ console.log('[ComponentName] Destroyed');
 - config.chart에 ECharts 설정 정의
 ```
 
-**이유**: create-component의 목적은 "동적 컴포넌트" 생성이다. 정적 SVG 차트는 데이터 변경 시 업데이트가 불가능하여 컴포넌트의 목적에 맞지 않는다.
+**이유**: create-figma-component의 목적은 "동적 컴포넌트" 생성이다. 정적 SVG 차트는 데이터 변경 시 업데이트가 불가능하여 컴포넌트의 목적에 맞지 않는다.
 
 ### 차트 변환 예시
 
