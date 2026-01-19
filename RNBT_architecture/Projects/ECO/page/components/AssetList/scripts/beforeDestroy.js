@@ -5,8 +5,9 @@
  * 1. 외부 이벤트 (customEvents - bindEvents로 등록)
  * 2. 내부 이벤트 (_internalHandlers - addEventListener로 등록)
  * 3. GlobalDataPublisher 구독 해제
- * 4. Tabulator 인스턴스
- * 5. 상태 초기화
+ * 4. Modal 이벤트 (_modalCloseHandler)
+ * 5. Tabulator 인스턴스 + tableConfig
+ * 6. 상태 초기화 (트리, 테이블, i18n)
  */
 
 const { removeCustomEvents } = Wkit;
@@ -34,7 +35,6 @@ if (this._internalHandlers) {
 
     // 트리 관련
     root.querySelector('.tree-search-input')?.removeEventListener('input', this._internalHandlers.treeSearchInput);
-    root.querySelector('.btn-expand-all')?.removeEventListener('click', this._internalHandlers.expandAll);
     root.querySelector('.btn-collapse-all')?.removeEventListener('click', this._internalHandlers.collapseAll);
     root.querySelector('.tree-container')?.removeEventListener('click', this._internalHandlers.treeClick);
 
@@ -56,24 +56,42 @@ if (this.subscriptions) {
 }
 
 // ======================
-// 4. Tabulator 정리
+// 4. Modal 이벤트 해제
+// ======================
+if (this._modalCloseHandler) {
+    const modal = this.appendElement.querySelector('.asset-modal');
+    modal?.removeEventListener('click', this._modalCloseHandler);
+    this._modalCloseHandler = null;
+}
+
+// ======================
+// 5. Tabulator 정리
 // ======================
 if (this._tableInstance) {
     this._tableInstance.destroy();
     this._tableInstance = null;
 }
+this.tableConfig = null;
 
 // ======================
-// 5. 상태 초기화
+// 6. 상태 초기화
 // ======================
+// 트리 상태
 this._treeData = null;
 this._expandedNodes = null;
 this._loadedNodes = null;
 this._selectedNodeId = null;
+
+// 테이블 상태
 this._allAssets = null;
 this._searchTerm = null;
 this._treeSearchTerm = null;
 this._typeFilter = null;
 this._statusFilter = null;
 
-console.log('[AssetList] Destroyed - tree, table, subscriptions, events cleaned up');
+// i18n 상태
+this._locale = null;
+this._uiTexts = null;
+this._uiTextsCache = null;
+
+console.log('[AssetList] Destroyed - tree, table, modal, subscriptions, events cleaned up');
