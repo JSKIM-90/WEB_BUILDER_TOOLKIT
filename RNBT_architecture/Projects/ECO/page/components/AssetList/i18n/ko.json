@@ -5,7 +5,6 @@
     "tree": {
         "title": "계층 구조",
         "searchPlaceholder": "계층 검색...",
-        "expandAll": "전체 펼침",
         "collapseAll": "전체 접기"
     },
     "table": {

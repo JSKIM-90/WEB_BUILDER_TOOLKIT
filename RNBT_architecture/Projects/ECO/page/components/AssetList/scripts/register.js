@@ -77,7 +77,6 @@ function initComponent() {
     this.appendChildren = appendChildren.bind(this);
     this.toggleNode = toggleNode.bind(this);
     this.selectNode = selectNode.bind(this);
-    this.expandAll = expandAll.bind(this);
     this.collapseAll = collapseAll.bind(this);
     this.search = search.bind(this);
     this.filterByType = filterByType.bind(this);
@@ -149,7 +148,6 @@ function setupInternalHandlers() {
                 renderTreeNodes.call(ctx, ctx._treeData, ctx._treeSearchTerm);
             }
         },
-        expandAll: () => ctx.expandAll(),
         collapseAll: () => ctx.collapseAll(),
         treeClick: (e) => handleTreeClick.call(ctx, e)
     };
@@ -160,7 +158,6 @@ function setupInternalHandlers() {
         ['.type-filter', 'change', 'typeChange'],
         ['.status-filter', 'change', 'statusChange'],
         ['.tree-search-input', 'input', 'treeSearchInput'],
-        ['.btn-expand-all', 'click', 'expandAll'],
         ['.btn-collapse-all', 'click', 'collapseAll'],
         ['.tree-container', 'click', 'treeClick']
     ];
@@ -465,94 +462,6 @@ function selectNode(nodeId) {
         event: { assetId: nodeId, node, locale: this._locale },
         targetInstance: this
     });
-}
-
-/**
- * Expand All - 모든 노드를 재귀적으로 로드하며 확장
- * Lazy Loading 환경에서도 동작
- */
-async function expandAll() {
-    if (!this._treeData) return;
-
-    // 로딩 표시
-    const expandBtn = this.appendElement.querySelector('.btn-expand-all');
-    if (expandBtn) {
-        expandBtn.disabled = true;
-        expandBtn.textContent = '...';
-    }
-
-    try {
-        // 재귀적으로 모든 노드 로드 및 확장
-        await expandAllRecursive.call(this, this._treeData);
-
-        // 트리 재렌더링
-        renderTreeNodes.call(this, this._treeData, this._treeSearchTerm);
-        console.log('[AssetList] Expand All completed');
-    } catch (error) {
-        console.error('[AssetList] Expand All failed:', error);
-    } finally {
-        // 버튼 복구
-        if (expandBtn) {
-            expandBtn.disabled = false;
-            expandBtn.textContent = '▼';
-        }
-    }
-}
-
-/**
- * 재귀적으로 모든 노드 확장 및 children 로드
- */
-async function expandAllRecursive(items) {
-    if (!items || items.length === 0) return;
-
-    const loadPromises = [];
-
-    for (const item of items) {
-        const { id, hasChildren, children = [] } = item;
-        const needsChildren = hasChildren && children.length === 0;
-
-        // 확장 상태 추가
-        if (hasChildren || children.length > 0) {
-            this._expandedNodes.add(id);
-        }
-
-        // Lazy Loading 필요한 경우 API 호출
-        if (needsChildren && !this._loadedNodes.has(id)) {
-            const promise = loadChildrenForNode.call(this, item)
-                .then(() => {
-                    // 로드된 children도 재귀적으로 확장
-                    if (item.children && item.children.length > 0) {
-                        return expandAllRecursive.call(this, item.children);
-                    }
-                });
-            loadPromises.push(promise);
-        } else if (children.length > 0) {
-            // 이미 로드된 children 재귀 확장
-            loadPromises.push(expandAllRecursive.call(this, children));
-        }
-    }
-
-    await Promise.all(loadPromises);
-}
-
-/**
- * 단일 노드의 children 로드
- */
-async function loadChildrenForNode(node) {
-    try {
-        const result = await fetchData(this.page, 'hierarchyChildren', {
-            assetId: node.id,
-            locale: this._locale
-        });
-
-        const data = result?.response?.data;
-        if (data && data.children) {
-            node.children = data.children;
-            this._loadedNodes.add(node.id);
-        }
-    } catch (error) {
-        console.error(`[AssetList] Failed to load children for ${node.id}:`, error);
-    }
 }
 
 function collapseAll() {
@@ -956,7 +865,6 @@ function getDefaultUITexts() {
         tree: {
             title: 'Hierarchy',
             searchPlaceholder: 'Search hierarchy...',
-            expandAll: 'Expand All',
             collapseAll: 'Collapse All'
         },
         table: {
