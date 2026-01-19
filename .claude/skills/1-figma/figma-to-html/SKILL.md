@@ -15,9 +15,9 @@ Figma 디자인을 **정적 HTML/CSS**로 변환하는 Skill입니다.
 **코드 작성 전 반드시 다음 파일들을 Read 도구로 읽으세요.**
 **이전에 읽었더라도 매번 다시 읽어야 합니다 - 캐싱하거나 생략하지 마세요.**
 
-1. `/Figma_Conversion/README.md` - 프로젝트 구조 및 시작 방법
-2. `/Figma_Conversion/CLAUDE.md` - 워크플로우와 규칙
-3. `/.claude/guides/CODING_STYLE.md` - 코딩 스타일
+1. [/Figma_Conversion/README.md](/Figma_Conversion/README.md) - 프로젝트 구조 및 시작 방법
+2. [/Figma_Conversion/CLAUDE.md](/Figma_Conversion/CLAUDE.md) - 워크플로우와 규칙
+3. [/.claude/guides/CODING_STYLE.md](/.claude/guides/CODING_STYLE.md) - 코딩 스타일
 
 ---
 

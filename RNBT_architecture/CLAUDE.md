@@ -4,7 +4,7 @@
 
 이 문서는 RNBT 런타임 프레임워크 작업 시 Claude Code가 따라야 할 지침을 정의합니다.
 
-**설계 및 아키텍처 문서**: `README.md` 참조
+**설계 및 아키텍처 문서**: [README.md](/RNBT_architecture/README.md) 참조
 
 ---
 

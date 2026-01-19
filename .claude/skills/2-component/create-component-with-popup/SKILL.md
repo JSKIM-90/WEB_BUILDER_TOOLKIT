@@ -16,9 +16,9 @@ description: Shadow DOM 팝업을 가진 컴포넌트를 생성합니다. 컴포
 **코드 작성 전 반드시 다음 파일들을 Read 도구로 읽으세요.**
 **이전에 읽었더라도 매번 다시 읽어야 합니다 - 캐싱하거나 생략하지 마세요.**
 
-1. `/RNBT_architecture/README.md` - 아키텍처 이해
-2. `/.claude/guides/CODING_STYLE.md` - 코딩 스타일
-3. `/RNBT_architecture/Utils/PopupMixin.js` - PopupMixin API
+1. [/RNBT_architecture/README.md](/RNBT_architecture/README.md) - 아키텍처 이해
+2. [/.claude/guides/CODING_STYLE.md](/.claude/guides/CODING_STYLE.md) - 코딩 스타일
+3. [/RNBT_architecture/Utils/PopupMixin.js](/RNBT_architecture/Utils/PopupMixin.js) - PopupMixin API
 
 ---
 
