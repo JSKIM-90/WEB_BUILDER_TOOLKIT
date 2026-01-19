@@ -464,9 +464,14 @@ otherwise                           → status: "normal"
 ### Request
 
 ```
-GET /api/ups/:assetId/history
-GET /api/ups/:assetId/history?period=7d
+GET /api/ups/:assetId/history?locale={locale}
+GET /api/ups/:assetId/history?period=7d&locale={locale}
 ```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| period | string | "24h" | 조회 기간 (`24h`, `7d`, `30d`) |
+| locale | string | "ko" | 다국어 코드 (`ko`, `en`, `ja`) |
 
 ### Response
 
@@ -475,16 +480,40 @@ GET /api/ups/:assetId/history?period=7d
   "data": {
     "upsId": "ups-001",
     "period": "24h",
+    "fields": [
+      { "key": "load", "label": "부하율", "unit": "%" },
+      { "key": "battery", "label": "배터리 잔량", "unit": "%" }
+    ],
     "timestamps": ["08:00", "09:00", "10:00", "..."],
-    "load": [62.5, 65.1, 68.8, "..."],
-    "battery": [100, 100, 99, "..."],
+    "values": {
+      "load": [62.5, 65.1, 68.8, "..."],
+      "battery": [100, 100, 99, "..."]
+    },
     "thresholds": {
       "loadWarning": 70,
       "loadCritical": 90
     }
+  },
+  "meta": {
+    "locale": "ko"
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| upsId | string | UPS ID |
+| period | string | 조회 기간 |
+| fields | array | 시계열 데이터 필드 메타데이터 |
+| fields[].key | string | 필드 키 (values 객체의 키와 매칭) |
+| fields[].label | string | 필드 라벨 (locale에 따라 번역됨) |
+| fields[].unit | string | 단위 |
+| timestamps | array | 타임스탬프 배열 |
+| values | object | 필드별 시계열 데이터 |
+| thresholds | object | 임계값 (차트 기준선 표시용) |
+| meta.locale | string | 응답에 적용된 언어 코드 |
 
 ---
 
@@ -570,8 +599,14 @@ GET /api/pdu/:assetId/circuits
 ### Request
 
 ```
-GET /api/pdu/:assetId/history
+GET /api/pdu/:assetId/history?locale={locale}
+GET /api/pdu/:assetId/history?period=7d&locale={locale}
 ```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| period | string | "24h" | 조회 기간 (`24h`, `7d`, `30d`) |
+| locale | string | "ko" | 다국어 코드 (`ko`, `en`, `ja`) |
 
 ### Response
 
@@ -580,12 +615,35 @@ GET /api/pdu/:assetId/history
   "data": {
     "pduId": "pdu-001",
     "period": "24h",
+    "fields": [
+      { "key": "power", "label": "전력", "unit": "kW" },
+      { "key": "current", "label": "전류", "unit": "A" }
+    ],
     "timestamps": ["08:00", "09:00", "10:00", "..."],
-    "power": [11.2, 12.5, 12.8, "..."],
-    "current": [50.9, 56.8, 58.2, "..."]
+    "values": {
+      "power": [11.2, 12.5, 12.8, "..."],
+      "current": [50.9, 56.8, 58.2, "..."]
+    }
+  },
+  "meta": {
+    "locale": "ko"
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| pduId | string | PDU ID |
+| period | string | 조회 기간 |
+| fields | array | 시계열 데이터 필드 메타데이터 |
+| fields[].key | string | 필드 키 (values 객체의 키와 매칭) |
+| fields[].label | string | 필드 라벨 (locale에 따라 번역됨) |
+| fields[].unit | string | 단위 |
+| timestamps | array | 타임스탬프 배열 |
+| values | object | 필드별 시계열 데이터 |
+| meta.locale | string | 응답에 적용된 언어 코드 |
 
 ---
 
@@ -645,8 +703,14 @@ GET /api/crac/:assetId?locale={locale}
 ### Request
 
 ```
-GET /api/crac/:assetId/history
+GET /api/crac/:assetId/history?locale={locale}
+GET /api/crac/:assetId/history?period=7d&locale={locale}
 ```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| period | string | "24h" | 조회 기간 (`24h`, `7d`, `30d`) |
+| locale | string | "ko" | 다국어 코드 (`ko`, `en`, `ja`) |
 
 ### Response
 
@@ -655,13 +719,37 @@ GET /api/crac/:assetId/history
   "data": {
     "cracId": "crac-001",
     "period": "24h",
+    "fields": [
+      { "key": "supplyTemp", "label": "공급 온도", "unit": "°C" },
+      { "key": "returnTemp", "label": "환기 온도", "unit": "°C" },
+      { "key": "humidity", "label": "습도", "unit": "%" }
+    ],
     "timestamps": ["08:00", "09:00", "10:00", "..."],
-    "supplyTemp": [18.2, 18.5, 18.3, "..."],
-    "returnTemp": [24.5, 24.8, 25.1, "..."],
-    "humidity": [45, 46, 44, "..."]
+    "values": {
+      "supplyTemp": [18.2, 18.5, 18.3, "..."],
+      "returnTemp": [24.5, 24.8, 25.1, "..."],
+      "humidity": [45, 46, 44, "..."]
+    }
+  },
+  "meta": {
+    "locale": "ko"
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| cracId | string | CRAC ID |
+| period | string | 조회 기간 |
+| fields | array | 시계열 데이터 필드 메타데이터 |
+| fields[].key | string | 필드 키 (values 객체의 키와 매칭) |
+| fields[].label | string | 필드 라벨 (locale에 따라 번역됨) |
+| fields[].unit | string | 단위 |
+| timestamps | array | 타임스탬프 배열 |
+| values | object | 필드별 시계열 데이터 |
+| meta.locale | string | 응답에 적용된 언어 코드 |
 
 ---
 
@@ -723,8 +811,14 @@ otherwise                                                 → status: "normal"
 ### Request
 
 ```
-GET /api/sensor/:assetId/history
+GET /api/sensor/:assetId/history?locale={locale}
+GET /api/sensor/:assetId/history?period=7d&locale={locale}
 ```
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| period | string | "24h" | 조회 기간 (`24h`, `7d`, `30d`) |
+| locale | string | "ko" | 다국어 코드 (`ko`, `en`, `ja`) |
 
 ### Response
 
@@ -733,12 +827,35 @@ GET /api/sensor/:assetId/history
   "data": {
     "sensorId": "sensor-001",
     "period": "24h",
+    "fields": [
+      { "key": "temperature", "label": "온도", "unit": "°C" },
+      { "key": "humidity", "label": "습도", "unit": "%" }
+    ],
     "timestamps": ["08:00", "09:00", "10:00", "..."],
-    "temperatures": [23.5, 24.1, 24.8, "..."],
-    "humidity": [45, 46, 44, "..."]
+    "values": {
+      "temperature": [23.5, 24.1, 24.8, "..."],
+      "humidity": [45, 46, 44, "..."]
+    }
+  },
+  "meta": {
+    "locale": "ko"
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| sensorId | string | 센서 ID |
+| period | string | 조회 기간 |
+| fields | array | 시계열 데이터 필드 메타데이터 |
+| fields[].key | string | 필드 키 (values 객체의 키와 매칭) |
+| fields[].label | string | 필드 라벨 (locale에 따라 번역됨) |
+| fields[].unit | string | 단위 |
+| timestamps | array | 타임스탬프 배열 |
+| values | object | 필드별 시계열 데이터 |
+| meta.locale | string | 응답에 적용된 언어 코드 |
 
 ---
 
@@ -919,3 +1036,4 @@ GET /api/i18n/locales
 | 2026-01-15 | 미사용 API 제거 (`/api/assets`, `/api/asset/:id`) |
 | 2026-01-15 | 자산 상세 API에 fields 메타데이터 추가 (하드코딩 제거) |
 | 2026-01-15 | API 파라미터 통일: `nodeId`, `:id` → `assetId`로 변경 |
+| 2026-01-19 | History API 자기완결성 개선: fields 메타데이터 추가, values 객체로 구조화, locale 파라미터 추가 |

@@ -482,7 +482,7 @@ function generateUPS(id, locale = 'ko') {
     };
 }
 
-function generateUPSHistory(upsId, period = '24h') {
+function generateUPSHistory(upsId, period = '24h', locale = 'ko') {
     const now = new Date();
     const points = period === '24h' ? 24 : period === '7d' ? 168 : 720;
     const interval = 60;
@@ -504,12 +504,22 @@ function generateUPSHistory(upsId, period = '24h') {
         batteryData.push(Math.round(Math.max(60, Math.min(100, baseBattery + noiseBattery)) * 10) / 10);
     }
 
+    // fields 메타데이터 (locale 적용)
+    const fieldLabels = I18N_FIELD_LABELS.ups;
+    const fields = [
+        { key: 'load', label: fieldLabels.load?.[locale] || fieldLabels.load?.['ko'] || 'Load', unit: '%' },
+        { key: 'battery', label: fieldLabels.batteryLevel?.[locale] || fieldLabels.batteryLevel?.['ko'] || 'Battery', unit: '%' }
+    ];
+
     return {
         upsId,
         period,
+        fields,
         timestamps,
-        load: loadData,
-        battery: batteryData,
+        values: {
+            load: loadData,
+            battery: batteryData
+        },
         thresholds: {
             loadWarning: 70,
             loadCritical: 90
@@ -599,7 +609,7 @@ function generatePDUCircuits(pduId) {
     };
 }
 
-function generatePDUHistory(pduId, period = '24h') {
+function generatePDUHistory(pduId, period = '24h', locale = 'ko') {
     const now = new Date();
     const points = period === '24h' ? 24 : period === '7d' ? 168 : 720;
     const interval = 60;
@@ -619,12 +629,22 @@ function generatePDUHistory(pduId, period = '24h') {
         currentData.push(Math.round((power * 1000 / 220) * 10) / 10);
     }
 
+    // fields 메타데이터 (locale 적용)
+    const fieldLabels = I18N_FIELD_LABELS.pdu;
+    const fields = [
+        { key: 'power', label: fieldLabels.totalPower?.[locale] || fieldLabels.totalPower?.['ko'] || 'Power', unit: 'kW' },
+        { key: 'current', label: fieldLabels.totalCurrent?.[locale] || fieldLabels.totalCurrent?.['ko'] || 'Current', unit: 'A' }
+    ];
+
     return {
         pduId,
         period,
+        fields,
         timestamps,
-        power: powerData,
-        current: currentData
+        values: {
+            power: powerData,
+            current: currentData
+        }
     };
 }
 
@@ -684,7 +704,7 @@ function generateCRAC(id, locale = 'ko') {
     };
 }
 
-function generateCRACHistory(cracId, period = '24h') {
+function generateCRACHistory(cracId, period = '24h', locale = 'ko') {
     const now = new Date();
     const points = period === '24h' ? 24 : period === '7d' ? 168 : 720;
     const interval = 60;
@@ -708,13 +728,24 @@ function generateCRACHistory(cracId, period = '24h') {
         humidityData.push(Math.round(Math.max(35, Math.min(65, baseHumidity + (Math.random() - 0.5) * 8)) * 10) / 10);
     }
 
+    // fields 메타데이터 (locale 적용)
+    const fieldLabels = I18N_FIELD_LABELS.crac;
+    const fields = [
+        { key: 'supplyTemp', label: fieldLabels.supplyTemp?.[locale] || fieldLabels.supplyTemp?.['ko'] || 'Supply Temp', unit: '°C' },
+        { key: 'returnTemp', label: fieldLabels.returnTemp?.[locale] || fieldLabels.returnTemp?.['ko'] || 'Return Temp', unit: '°C' },
+        { key: 'humidity', label: fieldLabels.humidity?.[locale] || fieldLabels.humidity?.['ko'] || 'Humidity', unit: '%' }
+    ];
+
     return {
         cracId,
         period,
+        fields,
         timestamps,
-        supplyTemp: supplyTempData,
-        returnTemp: returnTempData,
-        humidity: humidityData
+        values: {
+            supplyTemp: supplyTempData,
+            returnTemp: returnTempData,
+            humidity: humidityData
+        }
     };
 }
 
@@ -763,7 +794,7 @@ function generateSensor(id, locale = 'ko') {
     };
 }
 
-function generateSensorHistory(sensorId, period = '24h') {
+function generateSensorHistory(sensorId, period = '24h', locale = 'ko') {
     const now = new Date();
     const points = period === '24h' ? 24 : period === '7d' ? 168 : 720;
     const interval = 60;
@@ -783,12 +814,22 @@ function generateSensorHistory(sensorId, period = '24h') {
         humidityData.push(Math.round(Math.max(35, Math.min(65, baseHumidity + (Math.random() - 0.5) * 8)) * 10) / 10);
     }
 
+    // fields 메타데이터 (locale 적용)
+    const fieldLabels = I18N_FIELD_LABELS.sensor;
+    const fields = [
+        { key: 'temperatures', label: fieldLabels.temperature?.[locale] || fieldLabels.temperature?.['ko'] || 'Temperature', unit: '°C' },
+        { key: 'humidity', label: fieldLabels.humidity?.[locale] || fieldLabels.humidity?.['ko'] || 'Humidity', unit: '%' }
+    ];
+
     return {
         sensorId,
         period,
+        fields,
         timestamps,
-        temperatures,
-        humidity: humidityData
+        values: {
+            temperatures,
+            humidity: humidityData
+        }
     };
 }
 
@@ -1181,10 +1222,10 @@ app.get('/api/ups/:assetId', (req, res) => {
 
 app.get('/api/ups/:assetId/history', (req, res) => {
     const { assetId } = req.params;
-    const { period = '24h' } = req.query;
-    const history = generateUPSHistory(assetId, period);
-    console.log(`[${new Date().toISOString()}] GET /api/ups/${assetId}/history?period=${period}`);
-    res.json({ data: history });
+    const { period = '24h', locale = 'ko' } = req.query;
+    const history = generateUPSHistory(assetId, period, locale);
+    console.log(`[${new Date().toISOString()}] GET /api/ups/${assetId}/history?period=${period}&locale=${locale}`);
+    res.json({ data: history, meta: { locale } });
 });
 
 // ======================
@@ -1209,10 +1250,10 @@ app.get('/api/pdu/:assetId/circuits', (req, res) => {
 
 app.get('/api/pdu/:assetId/history', (req, res) => {
     const { assetId } = req.params;
-    const { period = '24h' } = req.query;
-    const history = generatePDUHistory(assetId, period);
-    console.log(`[${new Date().toISOString()}] GET /api/pdu/${assetId}/history?period=${period}`);
-    res.json({ data: history });
+    const { period = '24h', locale = 'ko' } = req.query;
+    const history = generatePDUHistory(assetId, period, locale);
+    console.log(`[${new Date().toISOString()}] GET /api/pdu/${assetId}/history?period=${period}&locale=${locale}`);
+    res.json({ data: history, meta: { locale } });
 });
 
 // ======================
@@ -1230,10 +1271,10 @@ app.get('/api/crac/:assetId', (req, res) => {
 
 app.get('/api/crac/:assetId/history', (req, res) => {
     const { assetId } = req.params;
-    const { period = '24h' } = req.query;
-    const history = generateCRACHistory(assetId, period);
-    console.log(`[${new Date().toISOString()}] GET /api/crac/${assetId}/history?period=${period}`);
-    res.json({ data: history });
+    const { period = '24h', locale = 'ko' } = req.query;
+    const history = generateCRACHistory(assetId, period, locale);
+    console.log(`[${new Date().toISOString()}] GET /api/crac/${assetId}/history?period=${period}&locale=${locale}`);
+    res.json({ data: history, meta: { locale } });
 });
 
 // ======================
@@ -1251,10 +1292,10 @@ app.get('/api/sensor/:assetId', (req, res) => {
 
 app.get('/api/sensor/:assetId/history', (req, res) => {
     const { assetId } = req.params;
-    const { period = '24h' } = req.query;
-    const history = generateSensorHistory(assetId, period);
-    console.log(`[${new Date().toISOString()}] GET /api/sensor/${assetId}/history?period=${period}`);
-    res.json({ data: history });
+    const { period = '24h', locale = 'ko' } = req.query;
+    const history = generateSensorHistory(assetId, period, locale);
+    console.log(`[${new Date().toISOString()}] GET /api/sensor/${assetId}/history?period=${period}&locale=${locale}`);
+    res.json({ data: history, meta: { locale } });
 });
 
 // ======================
