@@ -1304,6 +1304,8 @@ onEventBusHandlers(this.eventBusHandlers);
 
 ## 부록 C: 컴포넌트 내부 이벤트 패턴
 
+> **상세 문서:** [EVENT_HANDLING.md](/RNBT_architecture/docs/EVENT_HANDLING.md) - 이벤트 처리 원칙, customEvents vs _internalHandlers 판단 기준
+
 ### 핵심 개념
 
 "컴포넌트는 수동적이며, 자신의 콘텐츠를 가지고 있다"

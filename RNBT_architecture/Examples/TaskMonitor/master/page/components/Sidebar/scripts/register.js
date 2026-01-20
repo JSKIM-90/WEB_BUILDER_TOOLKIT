@@ -4,7 +4,7 @@
  * 기능:
  * 1. 필터 옵션 표시 (status, priority, type, assignee)
  * 2. Apply Filters 버튼 - 외부 이벤트 (@filterApplied)
- * 3. Reset 버튼 - 필터 초기화
+ * 3. Reset 버튼 - 필터 초기화 + 외부 이벤트 (@filterReset)
  *
  * 데이터 흐름:
  * - GlobalDataPublisher의 'filters' topic 구독 → 셀렉트 옵션 렌더링
@@ -25,7 +25,7 @@ this._currentFilters = {
     assignee: 'all'
 };
 
-this._internalHandlers = {};
+this._internalHandlers = null;
 
 // ======================
 // SUBSCRIPTIONS
@@ -33,6 +33,17 @@ this._internalHandlers = {};
 
 this.subscriptions = {
     'filters': ['renderFilters']
+};
+
+// ======================
+// CUSTOM EVENTS (페이지가 알아야 하는 이벤트)
+// ======================
+
+this.customEvents = {
+    'click': {
+        '.btn-apply': '@filterApplied',
+        '.btn-reset': '@filterReset'
+    }
 };
 
 // ======================
@@ -53,20 +64,13 @@ go(
 );
 
 // ======================
-// CUSTOM EVENTS
+// EVENT BINDINGS
 // ======================
-
-this.customEvents = {
-    click: {
-        '.btn-apply': '@filterApplied',
-        '.btn-reset': '@filterReset'
-    }
-};
 
 bindEvents(this, this.customEvents);
 
 // ======================
-// INTERNAL HANDLERS
+// INTERNAL HANDLERS (페이지가 알 필요 없는 내부 UI 동작)
 // ======================
 
 setupInternalHandlers.call(this);
@@ -75,50 +79,38 @@ function setupInternalHandlers() {
     const root = this.appendElement;
     const ctx = this;
 
-    // 셀렉트 변경 시 내부 상태 업데이트
-    this._internalHandlers.selectChange = (e) => {
-        const filterType = e.target.dataset.filter;
-        if (filterType) {
-            ctx._currentFilters[filterType] = e.target.value;
+    this._internalHandlers = {
+        // 셀렉트 변경 시 내부 상태 업데이트
+        selectChange: (e) => {
+            const filterType = e.target.dataset.filter;
+            if (filterType) {
+                ctx._currentFilters[filterType] = e.target.value;
+            }
+        },
+        // Reset 클릭 시 UI 초기화 (이벤트 발행은 customEvents가 처리)
+        resetClick: () => {
+            ctx._currentFilters = {
+                status: 'all',
+                priority: 'all',
+                type: 'all',
+                assignee: 'all'
+            };
+
+            // 셀렉트 UI 초기화
+            root.querySelectorAll('.filter-select').forEach(select => {
+                select.value = 'all';
+            });
         }
     };
 
-    // Reset 클릭 시 필터 초기화
-    this._internalHandlers.reset = () => {
-        ctx._currentFilters = {
-            status: 'all',
-            priority: 'all',
-            type: 'all',
-            assignee: 'all'
-        };
-
-        // 셀렉트 UI 초기화
-        root.querySelectorAll('.filter-select').forEach(select => {
-            select.value = 'all';
-        });
-    };
-
-    // 이벤트 등록
+    // 셀렉트 이벤트 등록
     root.querySelectorAll('.filter-select').forEach(select => {
         select.addEventListener('change', this._internalHandlers.selectChange);
     });
 
-    root.querySelector('.btn-reset')?.addEventListener('click', this._internalHandlers.reset);
+    // Reset 버튼 내부 동작 등록 (customEvents와 별개로 UI 초기화 담당)
+    root.querySelector('.btn-reset')?.addEventListener('click', this._internalHandlers.resetClick);
 }
-
-// customEvents 핸들러에서 현재 필터를 이벤트에 포함하도록 수정
-const originalEmit = Weventbus.emit;
-const ctx = this;
-
-// btn-apply 클릭 시 현재 필터 상태를 함께 전달
-this._internalHandlers.applyClick = () => {
-    Weventbus.emit('@filterApplied', {
-        event: { filters: { ...ctx._currentFilters } },
-        targetInstance: ctx
-    });
-};
-
-this.appendElement.querySelector('.btn-apply')?.addEventListener('click', this._internalHandlers.applyClick);
 
 // ======================
 // RENDER FUNCTIONS
