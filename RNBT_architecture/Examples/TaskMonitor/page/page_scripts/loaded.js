@@ -18,6 +18,7 @@ const { each } = fx;
 this.currentParams = {};
 
 this.globalDataMappings = [
+    ...(this.globalDataMappings || []),
     {
         topic: 'tasks',
         datasetInfo: {

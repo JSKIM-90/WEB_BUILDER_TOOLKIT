@@ -77,6 +77,35 @@ this.currentParams.tasks = { ...filters };
 - Page에서 초기화한 상태를 Master에서 직접 수정 가능
 - 이벤트 핸들러는 등록 시점이 아닌 실행 시점에 `this` 참조
 
+### ⚠️ 덮어쓰기 방지 (필수)
+
+Master와 Page 모두 같은 변수명을 사용하면 **나중에 실행되는 쪽이 덮어씀**.
+
+```javascript
+// ❌ 잘못된 예: Page가 Master의 핸들러를 덮어씀
+// Master before_load.js
+this.eventBusHandlers = { '@filterApplied': ... };
+// Page before_load.js
+this.eventBusHandlers = { '@taskClicked': ... };  // Master 핸들러 사라짐!
+
+// ✅ 올바른 예: Object.assign으로 병합
+// Page before_load.js
+this.eventBusHandlers = Object.assign(this.eventBusHandlers || {}, {
+    '@taskClicked': ...
+});
+
+// ✅ 올바른 예: spread로 배열 병합
+// Page loaded.js
+this.globalDataMappings = [
+    ...(this.globalDataMappings || []),
+    { topic: 'tasks', ... }
+];
+```
+
+**병합이 필요한 변수:**
+- `eventBusHandlers` → `Object.assign(this.eventBusHandlers || {}, {...})`
+- `globalDataMappings` → `[...(this.globalDataMappings || []), ...]`
+
 ---
 
 ## 라이프사이클 흐름

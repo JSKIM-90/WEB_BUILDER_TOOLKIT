@@ -14,14 +14,14 @@ const { onEventBusHandlers } = Wkit;
 // EVENT BUS HANDLERS
 // ======================
 
-this.eventBusHandlers = {
+this.eventBusHandlers = Object.assign(this.eventBusHandlers || {}, {
     /**
      * TaskList 행 클릭 이벤트
      */
     '@taskClicked': ({ data }) => {
         console.log('[Page] Task clicked:', data);
     }
-};
+});
 
 onEventBusHandlers(this.eventBusHandlers);
 
