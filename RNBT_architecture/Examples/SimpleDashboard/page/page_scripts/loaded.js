@@ -16,6 +16,7 @@ const { each } = fx;
 // ======================
 
 this.globalDataMappings = [
+    ...(this.globalDataMappings || []),
     {
         topic: 'stats',
         datasetInfo: {

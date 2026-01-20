@@ -23,7 +23,7 @@ this.currentParams = {
 // EVENT BUS HANDLERS
 // ======================
 
-this.eventBusHandlers = {
+this.eventBusHandlers = Object.assign(this.eventBusHandlers || {}, {
     /**
      * StatsCards 카드 클릭 이벤트
      */
@@ -71,7 +71,7 @@ this.eventBusHandlers = {
             this.currentParams.chartData
         );
     }
-};
+});
 
 onEventBusHandlers(this.eventBusHandlers);
 
