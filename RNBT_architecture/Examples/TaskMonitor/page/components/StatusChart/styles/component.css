@@ -5,7 +5,7 @@
     flex-shrink: 0;
     height: 300px;
 
-    .status-chart-panel {
+    .status-chart {
         width: 100%;
         height: 100%;
         display: flex;
@@ -17,16 +17,29 @@
     }
 
     /* Header */
-    .panel-header {
+    .chart-header {
         flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 12px;
     }
 
-    .panel-title {
+    .section-title {
         margin: 0;
         font-size: 16px;
         font-weight: 600;
         color: #1e293b;
+    }
+
+    .total-count {
+        font-size: 14px;
+        color: #64748b;
+
+        strong {
+            color: #1e293b;
+            font-weight: 600;
+        }
     }
 
     /* Chart Container */

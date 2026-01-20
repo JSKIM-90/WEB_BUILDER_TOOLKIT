@@ -126,6 +126,45 @@ this.currentParams.tasks = { ...filters };
 
 ---
 
+## preview.html 검증
+
+### HTML/CSS 일관성
+
+- preview.html의 HTML 구조는 `views/component.html`과 **동일**해야 함
+- CSS 셀렉터는 component.html의 클래스명 기준으로 작성
+- preview.html에서 임의로 다른 클래스명 사용 금지
+
+### 스크린샷 검증
+
+Playwright로 preview.html 렌더링 결과를 확인할 수 있습니다.
+
+```bash
+cd Figma_Conversion
+nvm use 20
+npx playwright screenshot \
+  --wait-for-timeout=3000 \
+  --viewport-size="1920,1080" \
+  "file:///path/to/preview.html" \
+  "screenshot.png"
+```
+
+- `--wait-for-timeout=3000`: 데이터 로딩 대기 (API fetch, 차트 렌더링 등)
+- file:// 프로토콜 사용 시 mock_server 실행 필요
+
+### DOM 순서
+
+```html
+<!-- Page가 먼저 (레이어 아래) -->
+<div id="page-container">...</div>
+
+<!-- Master가 나중에 (레이어 위) -->
+<div id="master-container">...</div>
+```
+
+DOM에서 나중에 오는 요소가 z-index 없이도 위에 렌더링됩니다.
+
+---
+
 ## 관련 자료
 
 | 참조 | 위치 |

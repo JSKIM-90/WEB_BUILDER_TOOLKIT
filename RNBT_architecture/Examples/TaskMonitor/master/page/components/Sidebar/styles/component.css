@@ -74,8 +74,8 @@
         }
     }
 
-    /* Actions */
-    .sidebar-actions {
+    /* Footer (Actions) */
+    .sidebar-footer {
         padding: 20px;
         border-top: 1px solid #e2e8f0;
         display: flex;

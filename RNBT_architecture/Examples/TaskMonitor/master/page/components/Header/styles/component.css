@@ -18,31 +18,20 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    /* Logo */
-    .header-logo {
+    /* Left - App Title */
+    .header-left {
         display: flex;
         align-items: center;
         gap: 12px;
     }
 
-    .logo-icon {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #3b82f6;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 20px;
-    }
-
-    .logo-text {
+    .app-title {
+        margin: 0;
         font-size: 20px;
         font-weight: 600;
     }
 
-    .version-badge {
+    .app-version {
         font-size: 12px;
         color: #94a3b8;
         padding: 2px 8px;
@@ -50,14 +39,20 @@
         border-radius: 4px;
     }
 
-    /* Status */
-    .header-status {
+    /* Center - Status */
+    .header-center {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
     }
 
     .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
@@ -72,16 +67,28 @@
     .status-text {
         font-size: 14px;
         color: #cbd5e1;
-        text-transform: capitalize;
     }
 
-    .task-count {
+    .task-summary {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         font-size: 14px;
         color: #94a3b8;
     }
 
-    /* Actions */
-    .header-actions {
+    .total-tasks,
+    .active-tasks {
+        font-weight: 500;
+        color: #cbd5e1;
+    }
+
+    .separator {
+        color: #475569;
+    }
+
+    /* Right - Actions */
+    .header-right {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -90,18 +97,24 @@
     .btn-refresh {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
         border: none;
         border-radius: 8px;
         background: #334155;
         color: #f8fafc;
-        font-size: 14px;
+        font-size: 16px;
         cursor: pointer;
         transition: background 0.2s;
 
         &:hover {
             background: #475569;
         }
+    }
+
+    .last-sync {
+        font-size: 12px;
+        color: #94a3b8;
     }
 }
