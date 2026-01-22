@@ -190,6 +190,12 @@ this.customEvents = {
     → disposeAllThreeResources()
 ```
 
+## getParam 선택 이유
+
+param 생성 로직을 컴포넌트에 캡슐화하기 위해 `getParam`을 사용했습니다.
+
+페이지 핸들러에서 직접 생성해도 동작합니다. 방법 선택은 자유입니다.
+
 ## 확장 포인트
 
 1. **상세 팝업**: `@3dObjectClicked` 핸들러에서 PopupMixin 패턴으로 상세 정보 표시
