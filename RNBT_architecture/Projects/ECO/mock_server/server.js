@@ -26,11 +26,11 @@ let ALL_ASSETS = [];
 
 // 대량 데이터 생성 설정
 const DATA_CONFIG = {
-    buildings: 25,
-    floorsPerBuilding: 5,
-    roomsPerFloor: 4,
+    buildings: 3,
+    floorsPerBuilding: 4,
+    roomsPerFloor: 3,
     racksPerRoom: 3,
-    serversPerRack: 8,
+    serversPerRack: 5,
     pdusPerRoom: 2,
     upsPerRoom: 1,
     cracsPerRoom: 2,
