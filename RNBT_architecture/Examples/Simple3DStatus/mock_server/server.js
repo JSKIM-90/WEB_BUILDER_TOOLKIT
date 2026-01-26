@@ -50,6 +50,7 @@ const equipments = [
  * 사용자 정보 (Master/Header)
  */
 app.get('/api/user', (req, res) => {
+     console.log(req.headers.authorization,'------')
     res.json({
         data: {
             id: 'user-001',

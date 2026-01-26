@@ -20,7 +20,7 @@ this.globalDataMappings = [
     {
         topic: 'equipmentStatus',
         datasetInfo: {
-            datasetName: 'equipmentStatusApi',
+            datasetName: 'simple3DStatus_equipmentStatusApi',
             param: {}
         },
         refreshInterval: 5000  // 5초마다 상태 갱신

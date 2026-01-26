@@ -20,7 +20,7 @@ this.globalDataMappings = [
     {
         topic: 'stats',
         datasetInfo: {
-            datasetName: 'statsApi',
+            datasetName: 'simpleDashboard_statsApi',
             param: {}
         },
         refreshInterval: 10000
@@ -28,7 +28,7 @@ this.globalDataMappings = [
     {
         topic: 'tableData',
         datasetInfo: {
-            datasetName: 'tableApi',
+            datasetName: 'simpleDashboard_tableApi',
             param: { category: 'all' }
         },
         refreshInterval: 30000
@@ -36,7 +36,7 @@ this.globalDataMappings = [
     {
         topic: 'chartData',
         datasetInfo: {
-            datasetName: 'chartApi',
+            datasetName: 'simpleDashboard_chartApi',
             param: { period: '7d' }
         },
         refreshInterval: 15000

@@ -18,14 +18,14 @@ this.globalDataMappings = [
     {
         topic: 'userInfo',
         datasetInfo: {
-            datasetName: 'userApi',
+            datasetName: 'simple3DStatus_userApi',
             param: {}
         }
     },
     {
         topic: 'menuList',
         datasetInfo: {
-            datasetName: 'menuApi',
+            datasetName: 'simple3DStatus_menuApi',
             param: {}
         }
     }

@@ -92,7 +92,7 @@ this.customEvents = {
  */
 this.datasetInfo = [
     {
-        datasetName: 'equipmentDetailApi',
+        datasetName: 'simple3DStatus_equipmentDetailApi',
         getParam: (intersectedObject, meshStatusConfig) => {
             const meshName = intersectedObject?.name;
             const config = meshStatusConfig?.find(c => c.meshName === meshName);
