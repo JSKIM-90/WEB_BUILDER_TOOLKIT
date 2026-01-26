@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AssetList Preview</title>
+    <title>AssetList Preview (Asset API v1)</title>
     <!-- External Dependencies -->
     <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
@@ -26,28 +26,20 @@
         <div class="asset-list-panel">
             <div class="panel-header">
                 <h2 class="panel-title">Asset List</h2>
-                <div class="header-controls">
-                    <select class="locale-selector" title="Language">
-                        <option value="ko">한국어</option>
-                        <option value="en">English</option>
-                        <option value="ja">日本語</option>
-                    </select>
-                    <button class="refresh-btn" title="Refresh">↻</button>
-                </div>
+                <button class="refresh-btn" title="Refresh">↻</button>
             </div>
 
             <div class="panel-body split-layout">
                 <!-- Tree Pane -->
                 <div class="tree-pane">
                     <div class="tree-header">
-                        <span class="tree-title">ECO 자산 관리</span>
+                        <span class="tree-title">Hierarchy</span>
                         <div class="tree-controls">
-                            <button class="btn-expand-all" title="Expand All">▼</button>
                             <button class="btn-collapse-all" title="Collapse All">▶</button>
                         </div>
                     </div>
                     <div class="tree-search">
-                        <input type="text" class="tree-search-input" placeholder="Search tree...">
+                        <input type="text" class="tree-search-input" placeholder="Search hierarchy...">
                     </div>
                     <div class="tree-container">
                         <ul class="tree-root"></ul>
@@ -60,8 +52,8 @@
                 <!-- Table Pane -->
                 <div class="table-pane">
                     <div class="selected-node-info">
-                        <span class="node-path">Select a location from the tree</span>
-                        <span class="node-count"></span>
+                        <span class="node-path">All Assets</span>
+                        <span class="node-count">0</span>
                     </div>
 
                     <div class="toolbar">
@@ -72,17 +64,10 @@
                         <div class="filter-box">
                             <select class="type-filter">
                                 <option value="all">All Types</option>
-                                <option value="server">Server</option>
-                                <option value="rack">Rack</option>
-                                <option value="pdu">PDU</option>
                                 <option value="ups">UPS</option>
+                                <option value="pdu">PDU</option>
                                 <option value="crac">CRAC</option>
                                 <option value="sensor">Sensor</option>
-                                <option value="switch">Switch</option>
-                                <option value="router">Router</option>
-                                <option value="storage">Storage</option>
-                                <option value="cabinet">Cabinet</option>
-                                <option value="circuit">Circuit</option>
                             </select>
 
                             <select class="status-filter">
@@ -109,204 +94,113 @@
                     <span class="count-value">0</span>
                 </div>
             </div>
+
+            <!-- Asset Detail Modal -->
+            <div class="asset-modal" hidden>
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="modal-title-area">
+                            <h3 class="modal-title">-</h3>
+                            <span class="modal-subtitle">-</span>
+                        </div>
+                        <div class="modal-header-right">
+                            <span class="modal-status" data-status="normal">Normal</span>
+                            <button class="modal-close-btn" type="button" aria-label="Close">×</button>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <div class="modal-info-grid"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- API Client -->
+    <!-- API Client (Asset API v1) -->
     <script>
         // ======================
-        // API Configuration
+        // API Configuration (Asset API v1)
         // ======================
-        const API_BASE = 'http://localhost:4004/api';
-
-        // ======================
-        // UI i18n (클라이언트 JSON 기반)
-        // ======================
-        const UI_I18N_CACHE = {};
+        const API_BASE = 'http://localhost:4004/api/v1';
 
         /**
-         * UI 텍스트 JSON 로드
-         * @param {string} locale - 언어 코드 (ko, en, ja)
+         * POST /api/v1/ast/l - 자산 전체 목록
          */
-        async function loadUITexts(locale = 'ko') {
-            if (UI_I18N_CACHE[locale]) {
-                return UI_I18N_CACHE[locale];
-            }
+        async function fetchAssetList() {
             try {
-                const res = await fetch(`i18n/${locale}.json`);
+                const res = await fetch(`${API_BASE}/ast/l`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
                 const json = await res.json();
-                UI_I18N_CACHE[locale] = json;
-                return json;
+                return { response: json };
             } catch (error) {
-                console.error('[i18n] Failed to load UI texts:', error);
-                // fallback to en (default)
-                if (locale !== 'en' && UI_I18N_CACHE['en']) {
-                    return UI_I18N_CACHE['en'];
-                }
-                // 캐시에 en도 없으면 기본 영문 텍스트 반환
-                return getDefaultUITexts();
+                console.error('[API] fetchAssetList error:', error);
+                return { response: { data: [] } };
             }
         }
 
         /**
-         * 기본 UI 텍스트 (영문)
-         * i18n JSON 로드 실패 시 fallback
+         * POST /api/v1/rel/l - 관계 전체 목록
          */
-        function getDefaultUITexts() {
-            return {
-                panel: { title: 'Asset List' },
-                tree: {
-                    title: 'Hierarchy',
-                    searchPlaceholder: 'Search hierarchy...',
-                    expandAll: 'Expand All',
-                    collapseAll: 'Collapse All'
-                },
-                table: {
-                    defaultPath: 'All Assets',
-                    searchPlaceholder: 'Search by name or ID...',
-                    columns: { id: 'ID', name: 'Name', type: 'Type', status: 'Status' },
-                    placeholder: 'Select a location from the tree'
-                },
-                filter: { allTypes: 'All Types', allStatus: 'All Status' },
-                status: { normal: 'Normal', warning: 'Warning', critical: 'Critical' },
-                footer: { total: 'Total:', count: '{count}' },
-                actions: { refresh: 'Refresh' }
+        async function fetchRelationList() {
+            try {
+                const res = await fetch(`${API_BASE}/rel/l`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const json = await res.json();
+                return { response: json };
+            } catch (error) {
+                console.error('[API] fetchRelationList error:', error);
+                return { response: { data: [] } };
+            }
+        }
+
+        /**
+         * POST /api/v1/ast/g - 자산 상세 조회
+         */
+        async function fetchAssetDetail(assetKey) {
+            try {
+                const res = await fetch(`${API_BASE}/ast/g`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ assetKey })
+                });
+                const json = await res.json();
+                return { response: json };
+            } catch (error) {
+                console.error('[API] fetchAssetDetail error:', error);
+                return { response: { data: null } };
+            }
+        }
+
+        // ======================
+        // STATUS TRANSFORM
+        // ======================
+        function statusTypeToLabel(statusType) {
+            const labels = {
+                ACTIVE: 'Normal',
+                WARNING: 'Warning',
+                CRITICAL: 'Critical',
+                INACTIVE: 'Inactive',
+                MAINTENANCE: 'Maintenance',
             };
+            return labels[statusType] || statusType;
         }
 
-        /**
-         * UI 텍스트 적용
-         * @param {Object} texts - i18n JSON 객체
-         */
-        function applyUITexts(texts) {
-            if (!texts) return;
-
-            // Panel title
-            const panelTitle = panel.querySelector('.panel-title');
-            if (panelTitle) panelTitle.textContent = texts.panel.title;
-
-            // Tree
-            const treeTitle = panel.querySelector('.tree-title');
-            if (treeTitle) treeTitle.textContent = texts.tree.title;
-
-            const treeSearchInput = panel.querySelector('.tree-search-input');
-            if (treeSearchInput) treeSearchInput.placeholder = texts.tree.searchPlaceholder;
-
-            const btnExpandAll = panel.querySelector('.btn-expand-all');
-            if (btnExpandAll) btnExpandAll.title = texts.tree.expandAll;
-
-            const btnCollapseAll = panel.querySelector('.btn-collapse-all');
-            if (btnCollapseAll) btnCollapseAll.title = texts.tree.collapseAll;
-
-            // Table
-            const nodePath = panel.querySelector('.node-path');
-            if (nodePath && !selectedNodeId) nodePath.textContent = texts.table.defaultPath;
-
-            const searchInput = panel.querySelector('.search-input');
-            if (searchInput) searchInput.placeholder = texts.table.searchPlaceholder;
-
-            // Filters
-            const typeFilter = panel.querySelector('.type-filter option[value="all"]');
-            if (typeFilter) typeFilter.textContent = texts.filter.allTypes;
-
-            const statusFilter = panel.querySelector('.status-filter option[value="all"]');
-            if (statusFilter) statusFilter.textContent = texts.filter.allStatus;
-
-            // Status filter options
-            const statusNormal = panel.querySelector('.status-filter option[value="normal"]');
-            const statusWarning = panel.querySelector('.status-filter option[value="warning"]');
-            const statusCritical = panel.querySelector('.status-filter option[value="critical"]');
-            if (statusNormal) statusNormal.textContent = texts.status.normal;
-            if (statusWarning) statusWarning.textContent = texts.status.warning;
-            if (statusCritical) statusCritical.textContent = texts.status.critical;
-
-            // Footer legend
-            const legendItems = panel.querySelectorAll('.legend-item');
-            if (legendItems.length >= 3) {
-                legendItems[0].innerHTML = `<span class="dot normal"></span> ${texts.status.normal}`;
-                legendItems[1].innerHTML = `<span class="dot warning"></span> ${texts.status.warning}`;
-                legendItems[2].innerHTML = `<span class="dot critical"></span> ${texts.status.critical}`;
-            }
-
-            // Footer total
-            const countLabel = panel.querySelector('.count-label');
-            if (countLabel) countLabel.textContent = texts.footer.total;
-
-            // Refresh button
-            const refreshBtn = panel.querySelector('.refresh-btn');
-            if (refreshBtn) refreshBtn.title = texts.actions.refresh;
-
-            // Table columns (재생성 필요)
-            if (tableInstance) {
-                updateTableColumns(texts);
-            }
-
-            console.log('[i18n] UI texts applied:', currentLocale);
-        }
-
-        /**
-         * 테이블 컬럼 헤더 업데이트
-         */
-        function updateTableColumns(texts) {
-            if (!tableInstance) return;
-
-            const columns = tableInstance.getColumnDefinitions();
-            columns.forEach(col => {
-                if (col.field === 'id') col.title = texts.table.columns.id;
-                if (col.field === 'name') col.title = texts.table.columns.name;
-                if (col.field === 'typeLabel') col.title = texts.table.columns.type;
-                if (col.field === 'statusLabel') col.title = texts.table.columns.status;
-            });
-            tableInstance.setColumns(columns);
-        }
-
-        // ======================
-        // API Functions (실제 Mock Server 호출)
-        // ======================
-
-        /**
-         * GET /api/hierarchy?depth=n&locale=ko
-         * 트리 계층 조회 (depth 제한, 다국어 지원)
-         */
-        async function fetchHierarchy(depth = 1, locale = 'ko') {
-            try {
-                const res = await fetch(`${API_BASE}/hierarchy?depth=${depth}&locale=${locale}`);
-                const json = await res.json();
-                return { response: json };
-            } catch (error) {
-                console.error('[API] fetchHierarchy error:', error);
-                return { response: { data: { items: [], summary: {} } } };
-            }
-        }
-
-        /**
-         * GET /api/hierarchy/:assetId/children?locale=ko
-         * 노드의 직속 children 조회 (Lazy Loading, 다국어 지원)
-         */
-        async function fetchNodeChildren(nodeId, locale = 'ko') {
-            try {
-                const res = await fetch(`${API_BASE}/hierarchy/${nodeId}/children?locale=${locale}`);
-                const json = await res.json();
-                return { response: json };
-            } catch (error) {
-                console.error('[API] fetchNodeChildren error:', error);
-                return { response: { data: { parentId: nodeId, children: [] } } };
-            }
-        }
-
-        /**
-         * GET /api/hierarchy/:assetId/assets?locale=ko
-         * 노드 하위의 모든 자산 조회 (Table용, 다국어 지원)
-         */
-        async function fetchNodeAssets(nodeId, locale = 'ko') {
-            try {
-                const res = await fetch(`${API_BASE}/hierarchy/${nodeId}/assets?locale=${locale}`);
-                const json = await res.json();
-                return { response: json };
-            } catch (error) {
-                console.error('[API] fetchNodeAssets error:', error);
-                return { response: { data: { assetId: nodeId, assetName: '', assetPath: '', assets: [], summary: {} } } };
-            }
+        function statusTypeToDataAttr(statusType) {
+            const map = {
+                ACTIVE: 'normal',
+                WARNING: 'warning',
+                CRITICAL: 'critical',
+                INACTIVE: 'inactive',
+                MAINTENANCE: 'maintenance',
+            };
+            return map[statusType] || 'normal';
         }
     </script>
 
@@ -315,37 +209,70 @@
         const container = document.getElementById('asset-list-container');
         const panel = container.querySelector('.asset-list-panel');
 
-        // State
-        let treeData = null;
+        // State (Asset API v1)
+        let _assets = [];           // 전체 자산 목록
+        let _relations = [];        // 전체 관계 목록
+        let _treeData = null;       // 빌드된 트리 데이터
         let expandedNodes = new Set();
-        let loadedNodes = new Set(); // Lazy Loading된 노드 추적
         let selectedNodeId = null;
-        let allAssets = [];
+        let _filteredAssets = [];   // 선택된 노드 하위 자산
         let searchTerm = '';
         let treeSearchTerm = '';
         let typeFilter = 'all';
         let statusFilter = 'all';
         let tableInstance = null;
-        let currentLocale = 'ko'; // 현재 locale (ko, en, ja)
+
+        // ==================
+        // TREE BUILD (Asset + Relation)
+        // ==================
+
+        /**
+         * Asset + Relation 데이터로 트리 구조 빌드
+         */
+        function buildTree() {
+            // 1. assetKey → asset 맵 생성
+            const assetMap = new Map();
+            _assets.forEach(asset => assetMap.set(asset.assetKey, { ...asset, children: [] }));
+
+            // 2. Relation으로 부모-자식 관계 설정
+            // fromAssetKey = 자식, toAssetKey = 부모
+            const childToParent = new Map();
+            _relations.forEach(({ fromAssetKey, toAssetKey }) => {
+                childToParent.set(fromAssetKey, toAssetKey);
+            });
+
+            // 3. 트리 구조 빌드
+            const rootNodes = [];
+            assetMap.forEach((asset, assetKey) => {
+                const parentKey = childToParent.get(assetKey);
+                if (parentKey && assetMap.has(parentKey)) {
+                    // 부모가 있으면 부모의 children에 추가
+                    assetMap.get(parentKey).children.push(asset);
+                } else {
+                    // 부모가 없으면 루트 노드
+                    rootNodes.push(asset);
+                }
+            });
+
+            // 4. children 정렬 (이름순)
+            const sortChildren = (nodes) => {
+                nodes.sort((a, b) => a.name.localeCompare(b.name));
+                nodes.forEach(node => {
+                    if (node.children.length > 0) sortChildren(node.children);
+                });
+            };
+            sortChildren(rootNodes);
+
+            _treeData = rootNodes;
+            console.log('[Preview] Tree built:', rootNodes.length, 'root nodes');
+
+            // 트리 렌더링
+            renderTreeNodes(_treeData, treeSearchTerm);
+        }
 
         // ==================
         // TREE RENDERING
         // ==================
-
-        /**
-         * 트리 렌더링 (register.js와 동일한 { response } 구조)
-         */
-        function renderTree({ response }) {
-            const { data } = response;
-            if (!data || !data.items) return;
-
-            treeData = data.items;
-            const titleEl = panel.querySelector('.tree-title');
-            if (titleEl && data.title) titleEl.textContent = data.title;
-
-            renderTreeNodes(treeData, treeSearchTerm);
-            console.log('[Preview] Tree rendered:', data.summary);
-        }
 
         function renderTreeNodes(items, searchTerm = '') {
             const rootEl = panel.querySelector('.tree-root');
@@ -361,25 +288,21 @@
         }
 
         function createTreeNode(item, searchTerm) {
-            const { id, name, type, status, children = [], hasChildren: apiHasChildren, assetCount } = item;
-            // hasChildren: API에서 제공된 값이 있으면 사용, 없으면 children 배열로 판단
-            const hasChildren = apiHasChildren !== undefined ? apiHasChildren : children.length > 0;
-            const hasLoadedChildren = children.length > 0;
-            const isExpanded = expandedNodes.has(id);
-            const isSelected = selectedNodeId === id;
-            const needsLazyLoad = hasChildren && !hasLoadedChildren && !loadedNodes.has(id);
+            const { assetKey, assetType, statusType, name, children = [] } = item;
+            const hasChildren = children.length > 0;
+            const isExpanded = expandedNodes.has(assetKey);
+            const isSelected = selectedNodeId === assetKey;
 
             const matchesSearch = !searchTerm || name.toLowerCase().includes(searchTerm);
-            const hasMatchingDescendants = hasLoadedChildren && checkDescendants(children, searchTerm);
+            const hasMatchingDescendants = hasChildren && checkDescendants(children, searchTerm);
 
             if (searchTerm && !matchesSearch && !hasMatchingDescendants) return null;
 
             const li = document.createElement('li');
             li.className = 'tree-node';
-            li.dataset.nodeId = id;
-            li.dataset.nodeType = type;
+            li.dataset.nodeId = assetKey;
+            li.dataset.nodeType = assetType;
             li.dataset.hasChildren = hasChildren;
-            li.dataset.needsLazyLoad = needsLazyLoad;
 
             const content = document.createElement('div');
             content.className = 'node-content';
@@ -396,7 +319,7 @@
 
             const icon = document.createElement('span');
             icon.className = 'node-icon';
-            icon.dataset.type = type;
+            icon.dataset.type = assetType.toLowerCase();
 
             const label = document.createElement('span');
             label.className = 'node-label';
@@ -406,15 +329,16 @@
             content.appendChild(icon);
             content.appendChild(label);
 
-            if (type === 'room' && assetCount !== undefined) {
+            // Count (컨테이너 노드만)
+            if (hasChildren) {
                 const count = document.createElement('span');
                 count.className = 'node-asset-count';
-                count.textContent = `(${assetCount})`;
+                count.textContent = `(${children.length})`;
                 content.appendChild(count);
             }
 
             const statusDot = document.createElement('span');
-            statusDot.className = `node-status ${status}`;
+            statusDot.className = `node-status ${statusTypeToDataAttr(statusType)}`;
             content.appendChild(statusDot);
 
             li.appendChild(content);
@@ -426,18 +350,10 @@
                     childrenUl.classList.add('expanded');
                 }
 
-                if (hasLoadedChildren) {
-                    children.forEach(child => {
-                        const childEl = createTreeNode(child, searchTerm);
-                        if (childEl) childrenUl.appendChild(childEl);
-                    });
-                } else if (needsLazyLoad) {
-                    // Lazy Loading 필요한 경우 로딩 표시
-                    const loadingLi = document.createElement('li');
-                    loadingLi.className = 'tree-node loading-placeholder';
-                    loadingLi.innerHTML = '<span class="loading-text">Loading...</span>';
-                    childrenUl.appendChild(loadingLi);
-                }
+                children.forEach(child => {
+                    const childEl = createTreeNode(child, searchTerm);
+                    if (childEl) childrenUl.appendChild(childEl);
+                });
 
                 li.appendChild(childrenUl);
             }
@@ -457,67 +373,13 @@
         // NODE ACTIONS
         // ==================
 
-        function toggleNode(nodeId, nodeEl) {
-            const isExpanding = !expandedNodes.has(nodeId);
-
-            if (isExpanding) {
-                expandedNodes.add(nodeId);
-
-                // Lazy Loading 필요 여부 확인
-                const needsLazyLoad = nodeEl?.dataset.needsLazyLoad === 'true';
-
-                if (needsLazyLoad && !loadedNodes.has(nodeId)) {
-                    console.log(`[Preview] Lazy loading children for ${nodeId}...`);
-
-                    // Promise 기반 API 호출 (현재 locale 전달)
-                    fetchNodeChildren(nodeId, currentLocale).then(appendChildren);
-                }
-            } else {
+        function toggleNode(nodeId) {
+            if (expandedNodes.has(nodeId)) {
                 expandedNodes.delete(nodeId);
+            } else {
+                expandedNodes.add(nodeId);
             }
-
             updateNodeVisuals(nodeId);
-        }
-
-        /**
-         * Lazy Loading으로 가져온 children을 트리에 추가 (register.js와 동일한 { response } 구조)
-         */
-        function appendChildren({ response }) {
-            const { data } = response;
-            if (!data || !data.parentId) return;
-
-            const { parentId, children } = data;
-
-            // 트리 데이터에 children 추가
-            addChildrenToNode(treeData, parentId, children);
-
-            // 로딩 완료 표시
-            loadedNodes.add(parentId);
-
-            // 트리 재렌더링
-            renderTreeNodes(treeData, treeSearchTerm);
-
-            console.log(`[Preview] Lazy loaded ${children.length} children for ${parentId}`);
-        }
-
-        /**
-         * 트리 데이터에서 특정 노드를 찾아 children 추가
-         */
-        function addChildrenToNode(items, parentId, children) {
-            if (!items) return false;
-
-            for (const item of items) {
-                if (item.id === parentId) {
-                    item.children = children;
-                    return true;
-                }
-                if (item.children && item.children.length > 0) {
-                    if (addChildrenToNode(item.children, parentId, children)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
 
         function selectNode(nodeId) {
@@ -529,98 +391,42 @@
             const nodeEl = panel.querySelector(`[data-node-id="${nodeId}"] > .node-content`);
             if (nodeEl) nodeEl.classList.add('selected');
 
-            // Promise 기반 API 호출 (현재 locale 전달)
-            fetchNodeAssets(nodeId, currentLocale).then(renderTable);
+            // 선택한 노드의 하위 모든 자산 가져오기
+            const node = findNodeByKey(_treeData, nodeId);
+            if (node) {
+                const descendants = getDescendantAssets(node);
+                _filteredAssets = descendants;
+                renderTable();
+            }
+
             console.log('[Preview] Node selected:', nodeId);
         }
 
-        /**
-         * Expand All - 모든 노드를 재귀적으로 로드하며 확장
-         * Lazy Loading 환경에서도 동작
-         */
-        async function expandAll() {
-            if (!treeData) return;
-
-            // 로딩 표시
-            const expandBtn = panel.querySelector('.btn-expand-all');
-            if (expandBtn) {
-                expandBtn.disabled = true;
-                expandBtn.textContent = '...';
-            }
-
-            try {
-                // 재귀적으로 모든 노드 로드 및 확장
-                await expandAllRecursive(treeData);
-
-                // 트리 재렌더링
-                renderTreeNodes(treeData, treeSearchTerm);
-                console.log('[Preview] Expand All completed');
-            } catch (error) {
-                console.error('[Preview] Expand All failed:', error);
-            } finally {
-                // 버튼 복구
-                if (expandBtn) {
-                    expandBtn.disabled = false;
-                    expandBtn.textContent = '▼';
-                }
-            }
-        }
-
-        /**
-         * 재귀적으로 모든 노드 확장 및 children 로드
-         */
-        async function expandAllRecursive(items) {
-            if (!items || items.length === 0) return;
-
-            const loadPromises = [];
-
+        function findNodeByKey(items, assetKey) {
+            if (!items) return null;
             for (const item of items) {
-                const { id, hasChildren, children = [] } = item;
-                const needsChildren = hasChildren && children.length === 0;
-
-                // 확장 상태 추가
-                if (hasChildren || children.length > 0) {
-                    expandedNodes.add(id);
-                }
-
-                // Lazy Loading 필요한 경우 API 호출
-                if (needsChildren && !loadedNodes.has(id)) {
-                    const promise = loadChildrenForNode(item)
-                        .then(() => {
-                            // 로드된 children도 재귀적으로 확장
-                            if (item.children && item.children.length > 0) {
-                                return expandAllRecursive(item.children);
-                            }
-                        });
-                    loadPromises.push(promise);
-                } else if (children.length > 0) {
-                    // 이미 로드된 children 재귀 확장
-                    loadPromises.push(expandAllRecursive(children));
+                if (item.assetKey === assetKey) return item;
+                if (item.children) {
+                    const found = findNodeByKey(item.children, assetKey);
+                    if (found) return found;
                 }
             }
-
-            await Promise.all(loadPromises);
+            return null;
         }
 
-        /**
-         * 단일 노드의 children 로드
-         */
-        async function loadChildrenForNode(node) {
-            try {
-                const result = await fetchNodeChildren(node.id, currentLocale);
-                const data = result?.response?.data;
-                if (data && data.children) {
-                    node.children = data.children;
-                    loadedNodes.add(node.id);
-                }
-            } catch (error) {
-                console.error(`[Preview] Failed to load children for ${node.id}:`, error);
+        function getDescendantAssets(node) {
+            const result = [node];
+            if (node.children) {
+                node.children.forEach(child => {
+                    result.push(...getDescendantAssets(child));
+                });
             }
+            return result;
         }
 
         function collapseAll() {
             expandedNodes.clear();
-            renderTreeNodes(treeData, treeSearchTerm);
+            if (_treeData) renderTreeNodes(_treeData, treeSearchTerm);
         }
 
         function updateNodeVisuals(nodeId) {
@@ -639,35 +445,32 @@
         // TABLE RENDERING
         // ==================
 
-        /**
-         * 테이블 렌더링 (register.js와 동일한 { response } 구조)
-         */
-        function renderTable({ response }) {
-            const { data } = response;
-            if (!data) return;
-
-            const { assetPath, assets = [], summary } = data;
-
+        function renderTable() {
             const pathEl = panel.querySelector('.node-path');
             const countEl = panel.querySelector('.selected-node-info .node-count');
-            if (pathEl) pathEl.textContent = assetPath || '전체 자산';
-            if (countEl) countEl.textContent = `${assets.length}개`;
 
-            allAssets = assets;
+            if (selectedNodeId) {
+                const node = findNodeByKey(_treeData, selectedNodeId);
+                if (pathEl) pathEl.textContent = node?.name || selectedNodeId;
+                if (countEl) countEl.textContent = `${_filteredAssets.length}개`;
+            } else {
+                if (pathEl) pathEl.textContent = 'All Assets';
+                if (countEl) countEl.textContent = `${_assets.length}개`;
+            }
+
             applyFilters();
-
-            console.log('[Preview] Table rendered:', summary);
         }
 
         function applyFilters() {
             const search = searchTerm.toLowerCase();
+            const sourceData = selectedNodeId ? _filteredAssets : _assets;
 
-            const filtered = allAssets.filter(asset => {
+            const filtered = sourceData.filter(asset => {
                 const matchesSearch = !search ||
                     asset.name.toLowerCase().includes(search) ||
-                    asset.id.toLowerCase().includes(search);
-                const matchesType = typeFilter === 'all' || asset.type === typeFilter;
-                const matchesStatus = statusFilter === 'all' || asset.status === statusFilter;
+                    asset.assetKey.toLowerCase().includes(search);
+                const matchesType = typeFilter === 'all' || asset.assetType.toLowerCase() === typeFilter;
+                const matchesStatus = statusFilter === 'all' || statusTypeToDataAttr(asset.statusType) === statusFilter;
                 return matchesSearch && matchesType && matchesStatus;
             });
 
@@ -694,34 +497,107 @@
                 height: 350,
                 placeholder: 'Select a location from the tree',
                 selectable: 1,
-                // Pagination
                 pagination: true,
                 paginationSize: 50,
                 paginationSizeSelector: [25, 50, 100, 200],
                 paginationCounter: 'rows',
                 columns: [
-                    { title: 'ID', field: 'id', widthGrow: 1, headerSort: true },
+                    { title: 'Key', field: 'assetKey', widthGrow: 1, headerSort: true },
                     { title: 'Name', field: 'name', widthGrow: 2, headerSort: true },
                     {
-                        title: 'Type', field: 'typeLabel', widthGrow: 1, headerSort: true,
+                        title: 'Type', field: 'assetType', widthGrow: 1, headerSort: true,
                         formatter: cell => {
-                            const row = cell.getRow().getData();
-                            return `<span class="type-badge" data-type="${row.type}">${cell.getValue()}</span>`;
+                            const value = cell.getValue();
+                            return `<span class="type-badge" data-type="${value.toLowerCase()}">${value}</span>`;
                         }
                     },
                     {
-                        title: 'Status', field: 'statusLabel', widthGrow: 1, headerSort: true,
+                        title: 'Status', field: 'statusType', widthGrow: 1, headerSort: true,
                         formatter: cell => {
-                            const row = cell.getRow().getData();
-                            return `<span class="status-badge" data-status="${row.status}">${cell.getValue()}</span>`;
+                            const value = cell.getValue();
+                            const label = statusTypeToLabel(value);
+                            return `<span class="status-badge" data-status="${statusTypeToDataAttr(value)}">${label}</span>`;
                         }
                     }
                 ]
             });
 
             tableInstance.on('rowClick', (e, row) => {
-                console.log('[Preview] Asset selected:', row.getData());
+                const asset = row.getData();
+                showModal(asset);
             });
+        }
+
+        // ==================
+        // MODAL
+        // ==================
+
+        function showModal(asset) {
+            const modal = panel.querySelector('.asset-modal');
+            if (!modal) return;
+
+            const { assetKey, name, assetType, statusType } = asset;
+
+            // 헤더 업데이트
+            modal.querySelector('.modal-title').textContent = name || assetKey;
+            modal.querySelector('.modal-subtitle').textContent = `${assetType} · ${assetKey}`;
+            const statusEl = modal.querySelector('.modal-status');
+            statusEl.textContent = statusTypeToLabel(statusType);
+            statusEl.dataset.status = statusTypeToDataAttr(statusType);
+
+            // 바디 업데이트
+            const grid = modal.querySelector('.modal-info-grid');
+            grid.innerHTML = '<div class="modal-loading"></div>';
+
+            // Modal 표시
+            modal.hidden = false;
+
+            // assetDetail API 호출
+            fetchAssetDetail(assetKey).then(({ response }) => {
+                const data = response?.data;
+                if (data) {
+                    grid.innerHTML = renderAssetDetailGrid(data);
+                } else {
+                    grid.innerHTML = `
+                        <div class="modal-no-api wide">
+                            <div class="modal-no-api-icon">⚠️</div>
+                            <div class="modal-no-api-text">Failed to load data</div>
+                        </div>
+                    `;
+                }
+            });
+
+            // 닫기 이벤트
+            modal.onclick = (e) => {
+                if (e.target.closest('.modal-close-btn') || e.target.classList.contains('modal-overlay')) {
+                    modal.hidden = true;
+                }
+            };
+        }
+
+        function renderAssetDetailGrid(data) {
+            const fields = [
+                { key: 'assetKey', label: 'Asset Key' },
+                { key: 'assetType', label: 'Type' },
+                { key: 'assetCategoryType', label: 'Category' },
+                { key: 'serviceType', label: 'Service' },
+                { key: 'serialNumber', label: 'Serial No.' },
+                { key: 'locationLabel', label: 'Location' },
+                { key: 'installDate', label: 'Install Date' },
+                { key: 'description', label: 'Description' },
+            ];
+
+            return fields
+                .map(({ key, label }) => {
+                    const value = data[key];
+                    return `
+                        <div class="modal-info-item">
+                            <div class="modal-info-label">${label}</div>
+                            <div class="modal-info-value">${value ?? '-'}</div>
+                        </div>
+                    `;
+                })
+                .join('');
         }
 
         // ==================
@@ -779,7 +655,7 @@
                 const toggle = nodeContent.querySelector('.node-toggle');
 
                 if (e.target.closest('.node-toggle') && !toggle.classList.contains('leaf')) {
-                    toggleNode(nodeId, nodeEl);
+                    toggleNode(nodeId);
                 } else {
                     selectNode(nodeId);
                 }
@@ -788,11 +664,10 @@
             // Tree search
             panel.querySelector('.tree-search-input')?.addEventListener('input', (e) => {
                 treeSearchTerm = e.target.value;
-                if (treeData) renderTreeNodes(treeData, treeSearchTerm);
+                if (_treeData) renderTreeNodes(_treeData, treeSearchTerm);
             });
 
-            // Expand/Collapse buttons
-            panel.querySelector('.btn-expand-all')?.addEventListener('click', expandAll);
+            // Collapse button
             panel.querySelector('.btn-collapse-all')?.addEventListener('click', collapseAll);
 
             // Table search
@@ -814,44 +689,47 @@
             });
 
             // Refresh button
-            panel.querySelector('.refresh-btn')?.addEventListener('click', () => {
-                console.log('[Preview] Refresh clicked');
-                fetchHierarchy(1, currentLocale).then(renderTree);
-            });
+            panel.querySelector('.refresh-btn')?.addEventListener('click', loadData);
+        }
 
-            // Locale selector
-            panel.querySelector('.locale-selector')?.addEventListener('change', async (e) => {
-                currentLocale = e.target.value;
-                console.log('[Preview] Locale changed:', currentLocale);
+        // ==================
+        // DATA LOADING (Asset API v1)
+        // ==================
 
-                // UI 텍스트 업데이트
-                const texts = await loadUITexts(currentLocale);
-                applyUITexts(texts);
+        async function loadData() {
+            console.log('[Preview] Loading data (Asset API v1)...');
 
-                // 트리 및 테이블 데이터 다시 로드
-                expandedNodes.clear();
-                loadedNodes.clear();
-                fetchHierarchy(1, currentLocale).then(renderTree);
-                if (selectedNodeId) {
-                    fetchNodeAssets(selectedNodeId, currentLocale).then(renderTable);
-                }
-            });
+            try {
+                const [assetResult, relationResult] = await Promise.all([
+                    fetchAssetList(),
+                    fetchRelationList()
+                ]);
+
+                _assets = assetResult.response?.data || [];
+                _relations = relationResult.response?.data || [];
+
+                console.log('[Preview] Assets:', _assets.length, 'Relations:', _relations.length);
+
+                // 트리 빌드
+                buildTree();
+
+                // 테이블 초기 렌더링
+                renderTable();
+
+            } catch (error) {
+                console.error('[Preview] Failed to load data:', error);
+            }
         }
 
         // ==================
         // INIT
         // ==================
 
-        window.onload = async () => {
-            // UI 텍스트 로드 및 적용
-            const texts = await loadUITexts(currentLocale);
-            applyUITexts(texts);
-
+        window.onload = () => {
             initTable();
             setupResizer();
             setupEventHandlers();
-            // Promise 기반 API 호출로 초기 트리 로드 (현재 locale 전달)
-            fetchHierarchy(1, currentLocale).then(renderTree);
+            loadData();
         };
     </script>
 </body>

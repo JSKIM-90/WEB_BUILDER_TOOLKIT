@@ -197,7 +197,10 @@
 
         const fx = {
             go: (data, ...fns) => fns.reduce((acc, fn) => acc.then ? acc.then(fn) : Promise.resolve(fn(acc)), Promise.resolve(data)),
-            each: (fn) => (arr) => { arr.forEach(fn); return arr; }
+            each: (fn, arr) => {
+                if (arr === undefined) return (arr2) => { arr2.forEach(fn); return arr2; };
+                arr.forEach(fn); return arr;
+            }
         };
 
         const Wkit = {
@@ -208,10 +211,10 @@
             }
         };
 
-        // Mock data - API 응답 구조에 맞춤 (fields 배열 포함)
+        // Mock data - Asset API v1 응답 구조에 맞춤
         const mockPDUData = {
             normal: {
-                name: 'PDU-A01', zone: 'Server Room A', statusLabel: 'Normal', status: 'normal',
+                name: 'PDU-A01', locationLabel: 'Server Room A', statusType: 'ACTIVE',
                 fields: [
                     { key: 'power', label: 'Power', value: 45.2, unit: 'kW', order: 1 },
                     { key: 'current', label: 'Current', value: 65.5, unit: 'A', order: 2 },
@@ -221,7 +224,7 @@
                 ]
             },
             warning: {
-                name: 'PDU-B02', zone: 'Server Room B', statusLabel: 'Warning', status: 'warning',
+                name: 'PDU-B02', locationLabel: 'Server Room B', statusType: 'WARNING',
                 fields: [
                     { key: 'power', label: 'Power', value: 72.8, unit: 'kW', order: 1 },
                     { key: 'current', label: 'Current', value: 105.2, unit: 'A', order: 2 },
@@ -231,7 +234,7 @@
                 ]
             },
             critical: {
-                name: 'PDU-C03', zone: 'Server Room C', statusLabel: 'Critical', status: 'critical',
+                name: 'PDU-C03', locationLabel: 'Server Room C', statusType: 'CRITICAL',
                 fields: [
                     { key: 'power', label: 'Power', value: 85.5, unit: 'kW', order: 1 },
                     { key: 'current', label: 'Current', value: 125.8, unit: 'A', order: 2 },
@@ -422,7 +425,7 @@
                 id: 'preview-pdu',
                 page: { element: document.getElementById('popup-host') },
                 properties: { publishCode: { htmlCode, cssCode } },
-                setter: { assetInfo: { assetId: 'mock-pdu-001' } }
+                setter: { assetInfo: { assetKey: 'mock-pdu-001' } }
             };
 
             initComponent.call(instance);
@@ -438,12 +441,23 @@
         // COMPONENT LIFECYCLE
         // ======================
 
+        // Status transform functions (Asset API v1)
+        function statusTypeToLabel(statusType) {
+            const labels = { ACTIVE: 'Normal', WARNING: 'Warning', CRITICAL: 'Critical', INACTIVE: 'Inactive', MAINTENANCE: 'Maintenance' };
+            return labels[statusType] || statusType;
+        }
+
+        function statusTypeToDataAttr(statusType) {
+            const map = { ACTIVE: 'normal', WARNING: 'warning', CRITICAL: 'critical', INACTIVE: 'inactive', MAINTENANCE: 'maintenance' };
+            return map[statusType] || 'normal';
+        }
+
         function initComponent() {
             const { bind3DEvents, fetchData } = Wkit;
             const { applyShadowPopupMixin, applyEChartsMixin, applyTabulatorMixin } = PopupMixin;
 
-            // register.js와 동일한 구조
-            this._defaultAssetId = this.setter?.assetInfo?.assetId || this.id;
+            // register.js와 동일한 구조 (Asset API v1)
+            this._defaultAssetKey = this.setter?.assetInfo?.assetKey || this.id;
 
             this.datasetInfo = [
                 { datasetName: 'pdu', render: ['renderPDUInfo'] },
@@ -453,9 +467,9 @@
 
             this.baseInfoConfig = [
                 { key: 'name', selector: '.pdu-name' },
-                { key: 'zone', selector: '.pdu-zone' },
-                { key: 'statusLabel', selector: '.pdu-status' },
-                { key: 'status', selector: '.pdu-status', dataAttr: 'status' }
+                { key: 'locationLabel', selector: '.pdu-zone' },
+                { key: 'statusType', selector: '.pdu-status', transform: statusTypeToLabel },
+                { key: 'statusType', selector: '.pdu-status', dataAttr: 'status', transform: statusTypeToDataAttr }
             ];
 
             // 동적 필드 컨테이너 selector (Summary Bar)
@@ -536,7 +550,7 @@
             applyEChartsMixin(this);
             applyTabulatorMixin(this);
 
-            console.log('[PDU] Registered:', this._defaultAssetId);
+            console.log('[PDU] Registered:', this._defaultAssetKey);
         }
 
         function showDetail() {
@@ -547,7 +561,7 @@
                 this.datasetInfo,
                 fx.each(({ datasetName, render }) =>
                     fx.go(
-                        Wkit.fetchData(this.page, datasetName, { assetId: this._defaultAssetId }),
+                        Wkit.fetchData(this.page, datasetName, { assetKey: this._defaultAssetKey }),
                         response => response && fx.each(fn => this[fn](response), render)
                     )
                 )
@@ -581,15 +595,19 @@
             const { data } = response;
             if (!data) return;
 
-            // 기본 정보 렌더링 (name, zone, status)
+            // 기본 정보 렌더링 (Asset API v1)
             fx.go(
                 this.baseInfoConfig,
-                fx.each(({ key, selector, dataAttr }) => {
+                fx.each(({ key, selector, dataAttr, transform }) => {
                     const el = this.popupQuery(selector);
                     if (!el) return;
-                    const value = data[key];
-                    el.textContent = value;
-                    if (dataAttr) el.dataset[dataAttr] = value;
+                    let value = data[key];
+                    if (transform) value = transform(value);
+                    if (dataAttr) {
+                        el.dataset[dataAttr] = value;
+                    } else {
+                        el.textContent = value;
+                    }
                 })
             );
 
@@ -611,7 +629,8 @@
             const { data } = response;
             if (!data) return;
             const circuits = data.circuits || data;
-            this.updateTable(config.selector, circuits);
+            const tableOptions = config.optionBuilder(config.columns);
+            this.updateTable(config.selector, circuits, tableOptions);
         }
 
         function renderPowerChart(config, { response }) {

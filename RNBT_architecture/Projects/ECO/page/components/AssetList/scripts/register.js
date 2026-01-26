@@ -270,7 +270,7 @@ function handleTreeClick(e) {
 
 function typeFormatter(cell) {
   const value = cell.getValue();
-  return `<span class="type-badge" data-type="${value}">${value}</span>`;
+  return `<span class="type-badge" data-type="${value.toLowerCase()}">${value}</span>`;
 }
 
 function statusFormatter(cell) {
@@ -560,8 +560,8 @@ function applyFilters() {
     !searchTerm ||
     asset.name.toLowerCase().includes(searchTerm) ||
     asset.assetKey.toLowerCase().includes(searchTerm);
-  const matchesType = (asset) => typeFilter === 'all' || asset.assetType === typeFilter;
-  const matchesStatus = (asset) => statusFilter === 'all' || asset.statusType === statusFilter;
+  const matchesType = (asset) => typeFilter === 'all' || asset.assetType.toLowerCase() === typeFilter;
+  const matchesStatus = (asset) => statusFilter === 'all' || statusTypeToDataAttr(asset.statusType) === statusFilter;
 
   const filtered = go(sourceData, filter(matchesSearch), filter(matchesType), filter(matchesStatus));
 
