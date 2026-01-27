@@ -10,7 +10,7 @@ UPS(Uninterruptible Power Supply) 컴포넌트는 3D 환경에서 사용되는 *
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  UPS Component With Popup                                   │
+│  UPS Component With Popup                                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
@@ -41,62 +41,16 @@ UPS(Uninterruptible Power Supply) 컴포넌트는 3D 환경에서 사용되는 *
 
 ## 주요 설정
 
-### datasetInfo
+상세 내용은 [config.md](./config.md) 참조
 
-API 호출과 렌더링 함수를 매핑합니다.
-
-```javascript
-this.datasetInfo = [
-    {
-        name: 'ups',           // 현재 상태
-        renderFn: 'renderStatus',
-        params: { assetId: this.id }
-    },
-    {
-        name: 'upsHistory',    // 히스토리 차트
-        renderFn: 'renderChart',
-        params: { assetId: this.id }
-    }
-];
-```
-
-### baseInfoConfig
-
-기본 정보 필드와 DOM 셀렉터 매핑:
-
-```javascript
-this.baseInfoConfig = [
-    { key: 'name', selector: '.ups-name' },
-    { key: 'typeLabel', selector: '.ups-type' },
-    { key: 'id', selector: '.ups-id' },
-    { key: 'statusLabel', selector: '.ups-status' }
-];
-```
-
-### fieldsContainerSelector
-
-동적 필드가 렌더링될 컨테이너:
-
-```javascript
-this.fieldsContainerSelector = '.fields-container';
-```
-
-### chartConfig
-
-ECharts 차트 설정:
-
-```javascript
-this.chartConfig = {
-    containerSelector: '.chart-container',
-    height: '200px',
-    option: {
-        // ECharts 옵션
-        xAxis: { type: 'category', data: [] },
-        yAxis: { type: 'value', name: 'Load (%)' },
-        series: [{ type: 'line', data: [], smooth: true }]
-    }
-};
-```
+| Config | 역할 |
+|--------|------|
+| `datasetInfo` | API 호출 ↔ 렌더링 함수 매핑 |
+| `baseInfoConfig` | asset 객체 → 헤더 UI 매핑 |
+| `fieldsContainerSelector` | 동적 필드 컨테이너 |
+| `chartConfig` | 차트 렌더링 설정 |
+| `templateConfig` | 팝업 템플릿 ID |
+| `popupCreatedConfig` | 팝업 생성 후 초기화 |
 
 ---
 
@@ -109,12 +63,18 @@ this.chartConfig = {
 │  register.js 실행                                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. datasetInfo 정의 (ups, upsHistory)                          │
-│  2. baseInfoConfig 정의                                         │
-│  3. fieldsContainerSelector 정의                                │
-│  4. chartConfig 정의                                            │
-│  5. applyShadowPopupMixin(this) 적용                            │
-│  6. applyEChartsMixin(this) 적용                                │
+│  1. _defaultAssetKey 설정 (setter.assetInfo.assetKey || id)     │
+│  2. datasetInfo 정의 (assetDetailUnified)                       │
+│  3. 변환 함수 바인딩 (statusTypeToLabel, formatDate 등)         │
+│  4. baseInfoConfig 정의 (name, locationLabel, statusType)       │
+│  5. fieldsContainerSelector 정의                                │
+│  6. chartConfig 정의                                            │
+│  7. 렌더링 함수 바인딩 (renderAssetInfo, renderProperties 등)   │
+│  8. customEvents 정의 + bind3DEvents 호출                       │
+│  9. templateConfig 정의                                         │
+│  10. popupCreatedConfig 정의                                    │
+│  11. applyShadowPopupMixin(this) 적용                           │
+│  12. applyEChartsMixin(this) 적용                               │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -126,81 +86,157 @@ this.chartConfig = {
 │  사용자가 3D UPS 클릭                                           │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. Page의 @assetClicked 핸들러 호출                            │
+│  1. bind3DEvents에서 등록한 click 이벤트 발생                   │
+│     └─→ customEvents.click = '@assetClicked' 발행              │
+│                                                                 │
+│  2. Page의 @assetClicked 핸들러 호출                            │
 │     └─→ targetInstance.showDetail()                            │
 │                                                                 │
-│  2. showDetail() 내부:                                          │
-│     ├─→ _showPopup() (Shadow DOM 팝업 표시)                     │
-│     ├─→ fetchData('ups', params)                               │
-│     │       └─→ renderStatus() 호출                            │
-│     └─→ fetchData('upsHistory', params)                        │
-│             └─→ renderChart() 호출                             │
+│  3. showDetail() 내부:                                          │
+│     ├─→ this.showPopup() (Shadow DOM 팝업 표시)                │
+│     │                                                           │
+│     └─→ fx.go(this.datasetInfo, ...) 실행                      │
+│             │                                                   │
+│             └─→ 각 datasetInfo에 대해:                          │
+│                     │                                           │
+│                     ├─→ fetchData(page, datasetName, params)   │
+│                     │       params: { assetKey, locale: 'ko' } │
+│                     │                                           │
+│                     └─→ 응답 처리:                              │
+│                             ├─→ 에러 시 renderError() 호출     │
+│                             └─→ 성공 시 render[] 함수들 호출   │
+│                                     ├─→ renderAssetInfo()      │
+│                                     └─→ renderProperties()     │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. 상태 렌더링 (renderStatus)
+### 3. 자산 정보 렌더링 (renderAssetInfo)
+
+API 응답의 `data.asset` 객체를 헤더 영역에 렌더링:
 
 ```javascript
-renderStatus({ response }) {
+function renderAssetInfo({ response }) {
     const { data } = response;
+    if (!data || !data.asset) {
+        renderError.call(this, '자산 데이터가 없습니다.');
+        return;
+    }
 
-    // 1. 기본 정보 렌더링
-    this.baseInfoConfig.forEach(({ key, selector }) => {
-        const el = this._popupRoot.querySelector(selector);
-        if (el && data[key] !== undefined) {
-            el.textContent = data[key];
-        }
-    });
+    const asset = data.asset;
 
-    // 2. 상태에 따른 스타일 적용
-    this._applyStatusStyle(data.status);
-
-    // 3. 동적 필드 렌더링 (API fields 배열 사용)
-    this._renderFields(data.fields);
+    // baseInfoConfig 순회하며 헤더 영역 렌더링
+    fx.go(
+        this.baseInfoConfig,
+        fx.each(({ key, selector, dataAttr, transform }) => {
+            const el = this.popupQuery(selector);
+            if (!el) return;
+            let value = asset[key];
+            if (transform) value = transform(value);
+            if (dataAttr) {
+                el.dataset[dataAttr] = value;  // data-status="normal"
+            } else {
+                el.textContent = value;        // textContent 설정
+            }
+        })
+    );
 }
 ```
 
-### 4. 동적 필드 렌더링 (_renderFields)
-
-API 응답의 `fields` 배열을 기반으로 렌더링:
-
+**매핑 결과**:
 ```
-API 응답:
-{
-    "fields": [
-        { "key": "load", "label": "부하율", "value": 75, "unit": "%" },
-        { "key": "batteryLevel", "label": "배터리 잔량", "value": 90, "unit": "%" },
-        { "key": "inputVoltage", "label": "입력 전압", "value": 220.5, "unit": "V" },
-        ...
-    ]
+API: asset.name = "UPS 0001"        →  .ups-name.textContent = "UPS 0001"
+API: asset.locationLabel = "서버실 A"  →  .ups-zone.textContent = "서버실 A"
+API: asset.statusType = "ACTIVE"    →  .ups-status.textContent = "Normal"
+API: asset.statusType = "ACTIVE"    →  .ups-status[data-status] = "normal"
+```
+
+### 4. 동적 프로퍼티 렌더링 (renderProperties)
+
+API 응답의 `data.properties[]` 배열을 동적으로 렌더링:
+
+```javascript
+function renderProperties({ response }) {
+    const { data } = response;
+    if (!data || !data.properties) return;
+
+    const container = this.popupQuery(this.fieldsContainerSelector);
+    if (!container) return;
+
+    // displayOrder로 정렬
+    const sortedProperties = [...data.properties]
+        .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+    // 카드 HTML 생성
+    container.innerHTML = sortedProperties
+        .map(({ label, value, helpText }) => {
+            return `<div class="value-card" title="${helpText || ''}">
+                <div class="value-label">${label}</div>
+                <div class="value-data">${value ?? '-'}</div>
+            </div>`;
+        })
+        .join('');
 }
+```
+
+**API 응답 → 렌더링**:
+```
+properties: [
+    { label: "정격 전력", value: 75, helpText: "...", displayOrder: 1 },
+    { label: "배터리 용량", value: 150, helpText: "...", displayOrder: 2 },
+    ...
+]
 
 렌더링 결과:
 ┌─────────────────────────┐
-│  부하율          75%    │
-│  배터리 잔량     90%    │
-│  입력 전압       220.5V │
+│  정격 전력        75    │
+│  배터리 용량     150    │
+│  효율           94.5    │
 │  ...                    │
 └─────────────────────────┘
 ```
 
-### 5. 차트 렌더링 (renderChart)
+### 5. 에러 렌더링 (renderError)
+
+API 호출 실패 또는 데이터 없음 시 에러 상태 표시:
 
 ```javascript
-renderChart({ response }) {
-    const { data } = response;
-    const { history = [] } = data;
+function renderError(message) {
+    // 헤더 영역에 에러 표시
+    const nameEl = this.popupQuery('.ups-name');
+    const zoneEl = this.popupQuery('.ups-zone');
+    const statusEl = this.popupQuery('.ups-status');
 
-    // ECharts 옵션 업데이트
-    this._chart.setOption({
-        xAxis: {
-            data: history.map(h => h.timestamp)
-        },
-        series: [{
-            data: history.map(h => h.load)
-        }]
-    });
+    if (nameEl) nameEl.textContent = '데이터 없음';
+    if (zoneEl) zoneEl.textContent = message;
+    if (statusEl) {
+        statusEl.textContent = 'Error';
+        statusEl.dataset.status = 'critical';
+    }
+
+    // fields-container에 에러 메시지 표시
+    const container = this.popupQuery(this.fieldsContainerSelector);
+    if (container) {
+        container.innerHTML = `
+            <div class="value-card" style="grid-column: 1 / -1; text-align: center;">
+                <div class="value-label">오류</div>
+                <div class="value-data" style="color: #ef4444;">${message}</div>
+            </div>
+        `;
+    }
+}
+```
+
+### 6. 차트 렌더링 (renderChart) - 추후 활성화
+
+```javascript
+function renderChart(config, { response }) {
+    const { data } = response;
+    if (!data || !data.fields || !data[config.valuesKey]) return;
+
+    const { optionBuilder, ...chartConfig } = config;
+    const option = optionBuilder(chartConfig, data);
+    this.updateChart('.chart-container', option);
 }
 ```
 
@@ -210,22 +246,20 @@ renderChart({ response }) {
 
 ### 발행 이벤트
 
-| 이벤트 | 발행 시점 | Payload |
-|--------|----------|---------|
-| `@assetClicked` | 3D 클릭 시 (Page에서 처리) | `{ event, targetInstance }` |
+| 이벤트 | 발행 시점 | 설정 위치 |
+|--------|----------|-----------|
+| `@assetClicked` | 3D 클릭 시 | `customEvents.click` |
 
 ### 외부 클릭 닫기
 
 ```
 사용자 클릭 (팝업 외부)
     │
-    └─→ document click 이벤트
+    └─→ ShadowPopupMixin의 outsideClick 핸들러
             │
-            └─→ _onOutsideClick()
+            └─→ hideDetail()
                     │
-                    └─→ hideDetail()
-                            │
-                            └─→ 팝업 숨김 + 차트 정리
+                    └─→ hidePopup() → 팝업 숨김
 ```
 
 ---
@@ -235,9 +269,7 @@ renderChart({ response }) {
 | 메서드 | 설명 |
 |--------|------|
 | `showDetail()` | 팝업 표시 + 데이터 로드 |
-| `hideDetail()` | 팝업 숨김 + 리소스 정리 |
-| `renderStatus({ response })` | 상태 정보 렌더링 |
-| `renderChart({ response })` | 히스토리 차트 렌더링 |
+| `hideDetail()` | 팝업 숨김 |
 
 ---
 
@@ -248,23 +280,27 @@ renderChart({ response }) {
 │ 3D Click │────▶│ showDetail│────▶│ fetchData()  │────▶│ Mock Server│
 └──────────┘     └───────────┘     └──────────────┘     └────────────┘
                                           │                    │
-                                          │    API Response    │
+                                          │  /api/v1/ast/detail│
                                           │◀───────────────────┘
                                           │
                                    ┌──────▼──────┐
-                                   │ datasetInfo │
-                                   │   매핑      │
+                                   │  response   │
+                                   │  {          │
+                                   │   asset,    │
+                                   │   properties│
+                                   │  }          │
                                    └──────┬──────┘
                                           │
                         ┌─────────────────┼─────────────────┐
                         │                 │                 │
                   ┌─────▼─────┐     ┌─────▼─────┐     ┌─────▼─────┐
-                  │renderStatus│    │renderChart │    │   ...     │
+                  │renderAsset│     │renderProp │     │renderChart│
+                  │   Info    │     │  erties   │     │  (추후)   │
                   └─────┬─────┘     └─────┬─────┘     └───────────┘
                         │                 │
                   ┌─────▼─────┐     ┌─────▼─────┐
-                  │ DOM 업데이트│    │ Chart     │
-                  │ (팝업 UI)  │    │ 업데이트   │
+                  │ 헤더 영역  │     │ 동적 필드  │
+                  │ DOM 업데이트│    │ DOM 생성   │
                   └───────────┘     └───────────┘
 ```
 
@@ -275,26 +311,27 @@ renderChart({ response }) {
 ```
 UPS/
 ├── docs/
-│   └── codeflow.md          # 이 문서
+│   ├── codeflow.md     # 이 문서
+│   └── config.md       # Config 명세
 ├── scripts/
-│   ├── register.js          # 메인 로직
-│   └── beforeDestroy.js     # 정리 (팝업 제거, 차트 파괴)
+│   ├── register.js     # 메인 로직
+│   └── beforeDestroy.js # 정리 (팝업 제거, 차트 파괴)
 ├── styles/
-│   └── component.css        # 팝업 스타일
+│   └── component.css   # 팝업 스타일
 ├── views/
-│   └── component.html       # 3D 모델 컨테이너
-└── README.md
+│   └── component.html  # 3D 모델 + 팝업 템플릿
+└── preview.html        # 단독 테스트 페이지
 ```
 
 ---
 
 ## 참고
 
+- [config.md](./config.md) - Config 상세 명세
 - [Shadow Popup Mixin](/RNBT_architecture/Utils/Mixins/ShadowPopupMixin.js)
 - [ECharts Mixin](/RNBT_architecture/Utils/Mixins/EChartsMixin.js)
 - [API 명세](/RNBT_architecture/Projects/ECO/API_SPEC.md)
-- [다국어 명세](/RNBT_architecture/Projects/ECO/I18N_SPEC.md)
 
 ---
 
-*최종 업데이트: 2026-01-15*
+*최종 업데이트: 2026-01-27*

@@ -17,6 +17,7 @@ ECO 프로젝트는 Asset API v1만 사용합니다. 모든 API는 POST 메서�
 | `/api/v1/ast/l` | POST | 자산 전체 목록 조회 |
 | `/api/v1/ast/la` | POST | 자산 목록 조회 (페이징) |
 | `/api/v1/ast/g` | POST | 자산 단건 조회 |
+| `/api/v1/ast/detail` | POST | 자산 상세 조회 (통합 API) |
 | `/api/v1/rel/l` | POST | 관계 전체 목록 조회 |
 | `/api/v1/rel/la` | POST | 관계 목록 조회 (페이징) |
 | `/api/v1/rel/g` | POST | 관계 단건 조회 |
@@ -295,14 +296,126 @@ Content-Type: application/json
 
 ---
 
+## 7. 자산 상세 조회 (통합 API)
+
+Asset 기본 정보와 카테고리별 속성을 한 번에 조회합니다.
+
+### Request
+
+```
+POST /api/v1/ast/detail
+Content-Type: application/json
+```
+
+```json
+{
+  "assetKey": "ups-0001",
+  "locale": "ko"
+}
+```
+
+### Request Parameters
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| assetKey | string | O | 자산 고유 키 |
+| locale | string | X | 언어 코드 (기본값: "ko") |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "asset": {
+      "assetKey": "ups-0001",
+      "name": "UPS 0001",
+      "assetType": "UPS",
+      "assetCategoryType": "UPS",
+      "statusType": "ACTIVE",
+      "locationLabel": "서버실 A",
+      "serialNumber": "SN-ups-0001",
+      "assetModelKey": null,
+      "installDate": "2024-01-15",
+      "ownerUserId": null,
+      "description": "UPS 0001 (ups)"
+    },
+    "properties": [
+      {
+        "fieldKey": "rated_power_kw",
+        "value": 75,
+        "label": "정격 전력",
+        "helpText": "UPS 명판 기준 정격 전력 (kW)",
+        "displayOrder": 1
+      },
+      {
+        "fieldKey": "battery_capacity_ah",
+        "value": 150,
+        "label": "배터리 용량",
+        "helpText": "배터리 총 용량 (Ah)",
+        "displayOrder": 2
+      },
+      {
+        "fieldKey": "efficiency_percent",
+        "value": 94.5,
+        "label": "효율",
+        "helpText": "정격 부하 시 효율 (%)",
+        "displayOrder": 3
+      }
+    ]
+  },
+  "error": null,
+  "timestamp": "2026-01-27T12:00:00Z",
+  "path": "/api/v1/ast/detail"
+}
+```
+
+### Response Fields
+
+**asset 객체**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| assetKey | string | 자산 고유 키 |
+| name | string | 자산 이름 |
+| assetType | string | 자산 타입 |
+| assetCategoryType | string | 자산 카테고리 |
+| statusType | string | 상태 |
+| locationLabel | string | 위치 이름 |
+| serialNumber | string | 시리얼 번호 |
+| installDate | string | 설치일 |
+
+**properties 배열**
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| fieldKey | string | 속성 키 |
+| value | any | 속성 값 |
+| label | string | 표시 라벨 (locale 기반) |
+| helpText | string | 도움말 텍스트 |
+| displayOrder | number | 표시 순서 |
+
+### UPS 속성 (PropertyMeta)
+
+| fieldKey | 설명 (ko) | 설명 (en) |
+|----------|-----------|-----------|
+| rated_power_kw | 정격 전력 (kW) | Rated Power |
+| battery_capacity_ah | 배터리 용량 (Ah) | Battery Capacity |
+| efficiency_percent | 효율 (%) | Efficiency |
+| input_voltage_v | 입력 전압 (V) | Input Voltage |
+| output_voltage_v | 출력 전압 (V) | Output Voltage |
+| backup_time_min | 백업 시간 (분) | Backup Time |
+
+---
+
 ## 컴포넌트 - API 매핑
 
 | 컴포넌트 | 사용 데이터셋 | API |
 |----------|--------------|-----|
-| UPS | assetDetail | POST /api/v1/ast/g |
-| PDU | assetDetail | POST /api/v1/ast/g |
-| CRAC | assetDetail | POST /api/v1/ast/g |
-| TempHumiditySensor | assetDetail | POST /api/v1/ast/g |
+| UPS | assetDetail | POST /api/v1/ast/detail |
+| PDU | assetDetail | POST /api/v1/ast/detail |
+| CRAC | assetDetail | POST /api/v1/ast/detail |
+| TempHumiditySensor | assetDetail | POST /api/v1/ast/detail |
 
 ### 컴포넌트 데이터 흐름
 
@@ -311,9 +424,9 @@ Content-Type: application/json
     │
     ├─→ showDetail() 호출
     │
-    ├─→ fetchData('assetDetail', { assetKey: this._defaultAssetKey })
+    ├─→ fetchData('assetDetail', { assetKey: this._defaultAssetKey, locale: 'ko' })
     │
-    └─→ renderBaseInfo() → 팝업에 자산 정보 표시
+    └─→ renderBaseInfo(asset) + renderProperties(properties) → 팝업에 자산 정보 표시
 ```
 
 ---
@@ -349,12 +462,13 @@ npm start  # http://localhost:4004
 Asset Summary: 15000 total assets
 
 Available endpoints:
-  POST /api/v1/ast/l   - Asset list (all)
-  POST /api/v1/ast/la  - Asset list (paged)
-  POST /api/v1/ast/g   - Asset single
-  POST /api/v1/rel/l   - Relation list (all)
-  POST /api/v1/rel/la  - Relation list (paged)
-  POST /api/v1/rel/g   - Relation single
+  POST /api/v1/ast/l      - Asset list (all)
+  POST /api/v1/ast/la     - Asset list (paged)
+  POST /api/v1/ast/g      - Asset single
+  POST /api/v1/ast/detail - Asset detail (unified API)
+  POST /api/v1/rel/l      - Relation list (all)
+  POST /api/v1/rel/la     - Relation list (paged)
+  POST /api/v1/rel/g      - Relation single
 ```
 
 ---
@@ -365,3 +479,4 @@ Available endpoints:
 |------|------|
 | 2025-12-22 | 초안 작성 - 기본 API 정의 |
 | 2026-01-26 | Asset API v1으로 전면 개편, 레거시 API 제거 |
+| 2026-01-27 | /api/v1/ast/detail (자산 상세 조회 통합 API) 문서 추가 |
