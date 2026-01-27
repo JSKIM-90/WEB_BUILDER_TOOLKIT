@@ -46,20 +46,16 @@ this.globalDataMappings = [
 
 this.currentParams = {};
 
-// 매핑 등록 + 초기 파라미터 설정
+// 매핑 등록 + 초기 파라미터 설정 + 초기 데이터 발행
 fx.go(
     this.globalDataMappings,
     each(GlobalDataPublisher.registerMapping),
-    each(({ topic, datasetInfo }) => {
-        this.currentParams[topic] = { ...datasetInfo.param };
-    })
+    each(({ topic }) => this.currentParams[topic] = {}),
+    each(({ topic }) =>
+        GlobalDataPublisher.fetchAndPublish(topic, this)
+            .catch(err => console.error(`[fetchAndPublish:${topic}]`, err))
+    )
 );
-
-// 초기 데이터 발행 (Asset API v1 - 자산 목록 + 관계 목록)
-Promise.all([
-    GlobalDataPublisher.fetchAndPublish('assetList', this, this.currentParams['assetList']),
-    GlobalDataPublisher.fetchAndPublish('relationList', this, this.currentParams['relationList'])
-]).catch(err => console.error('[fetchAndPublish:initial]', err));
 
 // ======================
 // EVENT HANDLERS
