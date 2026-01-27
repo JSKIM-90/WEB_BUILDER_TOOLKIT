@@ -261,33 +261,6 @@ function formatDate(dateStr) {
   }
 }
 
-// 센서 상세 필드 렌더링 (sensor 데이터셋 - fields 배열)
-function renderSensorFields({ response }) {
-  const { data } = response;
-  if (!data) {
-    console.warn('[TempHumiditySensor] renderSensorFields: data is null');
-    return;
-  }
-
-  const container = this.popupQuery(this.fieldsContainerSelector);
-  if (!container) return;
-  if (!data.fields) {
-    console.warn('[TempHumiditySensor] renderSensorFields: fields is null');
-    return;
-  }
-
-  const sortedFields = [...data.fields].sort((a, b) => (a.order || 0) - (b.order || 0));
-  container.innerHTML = sortedFields
-    .map(({ label, value, unit, valueLabel }) => {
-      const displayValue = valueLabel ? valueLabel : unit ? `${value}${unit}` : value;
-      return `<div class="value-card">
-        <div class="value-label">${label}</div>
-        <div class="value-data">${displayValue ?? '-'}</div>
-    </div>`;
-    })
-    .join('');
-}
-
 function renderChart(config, { response }) {
   const { data } = response;
   if (!data) {

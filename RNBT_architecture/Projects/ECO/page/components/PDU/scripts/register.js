@@ -352,33 +352,6 @@ function formatDate(dateStr) {
   }
 }
 
-// PDU 상세 필드 렌더링 (pdu 데이터셋 - fields 배열)
-function renderPDUFields({ response }) {
-  const { data } = response;
-  if (!data) {
-    console.warn('[PDU] renderPDUFields: data is null');
-    return;
-  }
-
-  const container = this.popupQuery(this.fieldsContainerSelector);
-  if (!container) return;
-  if (!data.fields) {
-    console.warn('[PDU] renderPDUFields: fields is null');
-    return;
-  }
-
-  const sortedFields = [...data.fields].sort((a, b) => (a.order || 0) - (b.order || 0));
-  container.innerHTML = sortedFields
-    .map(({ label, value, unit, valueLabel }) => {
-      const displayValue = valueLabel ? valueLabel : unit ? `${value}${unit}` : value;
-      return `<div class="summary-item">
-        <span class="summary-label">${label}</span>
-        <span class="summary-value">${displayValue ?? '-'}</span>
-      </div>`;
-    })
-    .join('');
-}
-
 function renderCircuitTable(config, { response }) {
   const { data } = response;
   if (!data) {
