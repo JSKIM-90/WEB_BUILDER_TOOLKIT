@@ -298,6 +298,15 @@
 
         let chartInstance = null;
 
+        // Chart Config (styleMap 패턴)
+        const chartConfig = {
+            xKey: 'labels',
+            styleMap: {
+                Revenue: { label: 'Revenue' },
+                Orders: { label: 'Orders' }
+            }
+        };
+
         async function renderChart(period = '7d') {
             const result = await fetchData(`/api/trend?period=${period}`);
             if (!result?.data) return;
@@ -314,7 +323,15 @@
                 resizeObserver.observe(chartContainer);
             }
 
-            const { labels, series } = result.data;
+            const { xKey, styleMap } = chartConfig;
+            const data = result.data;
+            const labels = data[xKey];
+
+            // styleMap 기반으로 series 생성
+            const seriesData = Object.entries(styleMap).map(([key, style]) => ({
+                key,
+                name: style.label
+            }));
 
             const option = {
                 tooltip: {
@@ -322,7 +339,7 @@
                     axisPointer: { type: 'cross' }
                 },
                 legend: {
-                    data: series.map(s => s.name),
+                    data: seriesData.map(s => s.name),
                     top: 0,
                     textStyle: { fontSize: 12 }
                 },
@@ -346,25 +363,14 @@
                         lineStyle: { type: 'dashed', color: '#e2e8f0' }
                     }
                 },
-                series: series.map(s => ({
-                    name: s.name,
+                series: seriesData.map(({ key, name }) => ({
+                    name,
                     type: 'line',
                     smooth: true,
                     symbol: 'circle',
                     symbolSize: 6,
-                    data: s.data,
-                    lineStyle: { color: s.color, width: 2 },
-                    itemStyle: { color: s.color },
-                    areaStyle: {
-                        color: {
-                            type: 'linear',
-                            x: 0, y: 0, x2: 0, y2: 1,
-                            colorStops: [
-                                { offset: 0, color: s.color + '40' },
-                                { offset: 1, color: s.color + '05' }
-                            ]
-                        }
-                    }
+                    data: data[key],
+                    areaStyle: {}
                 }))
             };
 

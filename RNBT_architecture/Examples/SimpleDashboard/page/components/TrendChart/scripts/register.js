@@ -18,7 +18,10 @@ const { bindEvents } = Wkit;
 
 const chartConfig = {
     xKey: 'labels',
-    seriesKey: 'series',
+    styleMap: {
+        Revenue: { label: 'Revenue' },
+        Orders: { label: 'Orders' }
+    },
     optionBuilder: getChartOptions
 };
 
@@ -93,9 +96,14 @@ function renderChart(config, { response }) {
 // ======================
 
 function getChartOptions(config, data) {
-    const { xKey, seriesKey } = config;
+    const { xKey, styleMap } = config;
     const labels = data[xKey];
-    const seriesData = data[seriesKey];
+
+    // styleMap 기반으로 series 생성
+    const seriesData = Object.entries(styleMap).map(([key, style]) => ({
+        key,
+        name: style.label
+    }));
 
     return {
         tooltip: {
@@ -105,7 +113,7 @@ function getChartOptions(config, data) {
             }
         },
         legend: {
-            data: fx.go(seriesData, fx.map(s => s.name)),
+            data: seriesData.map(s => s.name),
             top: 0,
             textStyle: {
                 fontSize: 12
@@ -138,33 +146,14 @@ function getChartOptions(config, data) {
                 }
             }
         },
-        series: fx.go(
-            seriesData,
-            fx.map(s => ({
-                name: s.name,
-                type: 'line',
-                smooth: true,
-                symbol: 'circle',
-                symbolSize: 6,
-                data: s.data,
-                lineStyle: {
-                    color: s.color,
-                    width: 2
-                },
-                itemStyle: {
-                    color: s.color
-                },
-                areaStyle: {
-                    color: {
-                        type: 'linear',
-                        x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                            { offset: 0, color: s.color + '40' },
-                            { offset: 1, color: s.color + '05' }
-                        ]
-                    }
-                }
-            }))
-        )
+        series: seriesData.map(({ key, name }) => ({
+            name,
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            data: data[key],
+            areaStyle: {}
+        }))
     };
 }

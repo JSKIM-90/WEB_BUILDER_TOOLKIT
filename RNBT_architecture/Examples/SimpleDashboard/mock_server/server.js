@@ -172,18 +172,8 @@ app.get('/api/trend', (req, res) => {
         success: true,
         data: {
             labels: labels,
-            series: [
-                {
-                    name: 'Revenue',
-                    data: generateTrendData(5000, 2000),
-                    color: '#3b82f6'
-                },
-                {
-                    name: 'Orders',
-                    data: generateTrendData(150, 50),
-                    color: '#10b981'
-                }
-            ]
+            Revenue: generateTrendData(5000, 2000),
+            Orders: generateTrendData(150, 50)
         },
         meta: {
             period: period
