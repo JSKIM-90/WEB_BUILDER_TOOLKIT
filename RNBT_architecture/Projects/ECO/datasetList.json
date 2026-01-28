@@ -156,6 +156,27 @@
       "dataset_id": "ast-detail-unified-001",
       "name": "assetDetailUnified",
       "rest_api": "{\"url\":\"http://10.23.128.140:8811/api/v1/ast/gx\",\"method\":\"POST\",\"headers\":{\"Content-Type\":\"application/json\"},\"body\":\"{\\\"assetKey\\\":\\\"#{assetKey}\\\",\\\"locale\\\":\\\"#{locale}\\\"}\"}"
+    },
+    {
+      "datasource": "",
+      "mode": "0",
+      "delivery_type": "0",
+      "param_info": [
+        {
+          "param_name": "assetKey",
+          "param_type": "string",
+          "default_value": "sensor-00001"
+        }
+      ],
+      "data_type": "1",
+      "interval": "0",
+      "page_id": "PAGE",
+      "query": "",
+      "query_type": "",
+      "description": "Metric API v1 - 자산별 최신 메트릭 데이터 조회 (최근 1분)",
+      "dataset_id": "mh-latest-001",
+      "name": "metricLatest",
+      "rest_api": "{\"url\":\"http://10.23.128.140:8811/api/v1/mh/gl\",\"method\":\"POST\",\"headers\":{\"Content-Type\":\"application/json\"},\"body\":\"{\\\"assetKey\\\":\\\"#{assetKey}\\\"}\"}"
     }
   ],
   "datasource": []

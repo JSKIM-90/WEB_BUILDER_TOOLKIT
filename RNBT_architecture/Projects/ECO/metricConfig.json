@@ -1,0 +1,26 @@
+{
+  "SENSOR.TEMP": {
+    "label": "온도",
+    "description": "센서 온도",
+    "valueType": "NUMBER",
+    "unit": "°C",
+    "scale": 1.0,
+    "interface": "PERF_SENSOR"
+  },
+  "SENSOR.HUMIDITY": {
+    "label": "습도",
+    "description": "상대습도",
+    "valueType": "NUMBER",
+    "unit": "%RH",
+    "scale": 1.0,
+    "interface": "PERF_SENSOR"
+  },
+  "SENSOR.MEASURED_AT": {
+    "label": "측정시각",
+    "description": "측정시각(필요 시)",
+    "valueType": "STRING/NUMBER",
+    "unit": "timestamp",
+    "scale": 1.0,
+    "interface": "PERF_SENSOR.STIME"
+  }
+}

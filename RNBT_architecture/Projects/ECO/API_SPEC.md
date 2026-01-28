@@ -12,6 +12,8 @@ ECO 프로젝트는 Asset API v1만 사용합니다. 모든 API는 POST 메서�
 
 ### 사용 가능한 API
 
+**Asset API**
+
 | API | 메서드 | 설명 |
 |-----|--------|------|
 | `/api/v1/ast/l` | POST | 자산 전체 목록 조회 |
@@ -21,6 +23,12 @@ ECO 프로젝트는 Asset API v1만 사용합니다. 모든 API는 POST 메서�
 | `/api/v1/rel/l` | POST | 관계 전체 목록 조회 |
 | `/api/v1/rel/la` | POST | 관계 목록 조회 (페이징) |
 | `/api/v1/rel/g` | POST | 관계 단건 조회 |
+
+**Metric API**
+
+| API | 메서드 | 설명 |
+|-----|--------|------|
+| `/api/v1/mh/gl` | POST | 자산별 최신 메트릭 데이터 조회 |
 
 ---
 
@@ -408,6 +416,78 @@ Content-Type: application/json
 
 ---
 
+## 8. 자산별 최신 메트릭 데이터 조회
+
+특정 자산(asset_key)의 metric_code별 최신 데이터를 조회합니다. 최근 1분 이내 데이터만 조회됩니다.
+
+### Request
+
+```
+POST /api/v1/mh/gl
+Content-Type: application/json
+```
+
+```json
+{
+  "assetKey": "DC1-TEMP-01"
+}
+```
+
+### Request Parameters
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| assetKey | string | O | 자산 고유 키 |
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "metricCode": "SENSOR.HUMIDITY",
+      "eventedAt": "2026-01-28T06:31:49.039Z",
+      "valueType": "NUMBER",
+      "valueNumber": 52.1,
+      "extra": "{\"tags\": {\"profileId\": \"SENSOR_V1\"}}"
+    },
+    {
+      "metricCode": "SENSOR.TEMP",
+      "eventedAt": "2026-01-28T06:31:49.039Z",
+      "valueType": "NUMBER",
+      "valueNumber": 24.5,
+      "extra": "{\"tags\": {\"profileId\": \"SENSOR_V1\", \"endpointId\": 1}}"
+    }
+  ],
+  "path": "/api/v1/mh/gl",
+  "success": true,
+  "timestamp": "2026-01-28T15:31:51"
+}
+```
+
+### Response Fields
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| metricCode | string | 메트릭 코드 (예: SENSOR.TEMP, SENSOR.HUMIDITY) |
+| eventedAt | string | 측정 시각 (ISO 8601) |
+| valueType | string | 값 타입 (NUMBER, STRING 등) |
+| valueNumber | number | 숫자 값 (valueType이 NUMBER인 경우) |
+| valueString | string | 문자열 값 (valueType이 STRING인 경우) |
+| extra | string | 추가 정보 (JSON 문자열) |
+
+### Metric Code 참조
+
+센서 메트릭 코드는 `metricConfig.json` 파일을 참조하세요.
+
+| metricCode | 라벨 | 단위 | 설명 |
+|------------|------|------|------|
+| SENSOR.TEMP | 온도 | °C | 센서 온도 |
+| SENSOR.HUMIDITY | 습도 | %RH | 상대습도 |
+| SENSOR.MEASURED_AT | 측정시각 | timestamp | 측정시각(필요 시) |
+
+---
+
 ## 컴포넌트 - API 매핑
 
 | 컴포넌트 | 사용 데이터셋 | API |
@@ -416,6 +496,7 @@ Content-Type: application/json
 | PDU | assetDetailUnified | POST /api/v1/ast/gx |
 | CRAC | assetDetailUnified | POST /api/v1/ast/gx |
 | TempHumiditySensor | assetDetailUnified | POST /api/v1/ast/gx |
+| TempHumiditySensor | metricLatest | POST /api/v1/mh/gl |
 
 ### 컴포넌트 데이터 흐름
 
@@ -469,6 +550,7 @@ Available endpoints:
   POST /api/v1/rel/l      - Relation list (all)
   POST /api/v1/rel/la     - Relation list (paged)
   POST /api/v1/rel/g      - Relation single
+  POST /api/v1/mh/gl      - Metric latest (by asset)
 ```
 
 ---
@@ -480,3 +562,4 @@ Available endpoints:
 | 2025-12-22 | 초안 작성 - 기본 API 정의 |
 | 2026-01-26 | Asset API v1으로 전면 개편, 레거시 API 제거 |
 | 2026-01-27 | /api/v1/ast/gx (자산 상세 조회 통합 API) 문서 추가 |
+| 2026-01-28 | /api/v1/mh/gl (자산별 최신 메트릭 조회) API 추가 |

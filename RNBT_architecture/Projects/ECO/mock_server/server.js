@@ -543,6 +543,77 @@ app.post('/api/v1/ast/gx', (req, res) => {
 });
 
 // ======================
+// METRIC API v1 DATA
+// ======================
+
+// 센서 메트릭 mock 데이터 생성 함수
+function generateSensorMetrics(assetKey) {
+    const now = new Date();
+    const eventedAt = now.toISOString();
+
+    // 센서 타입에 따라 다른 메트릭 생성
+    const metrics = [];
+
+    // assetKey에서 센서 유형 추출 (sensor- prefix 확인)
+    if (assetKey.includes('sensor') || assetKey.includes('TEMP') || assetKey.includes('SENSOR')) {
+        // 온도 메트릭
+        metrics.push({
+            metricCode: 'SENSOR.TEMP',
+            eventedAt: eventedAt,
+            valueType: 'NUMBER',
+            valueNumber: 20 + Math.round(Math.random() * 10 * 10) / 10, // 20.0 ~ 30.0
+            extra: JSON.stringify({ tags: { profileId: 'SENSOR_V1', endpointId: 1 } })
+        });
+
+        // 습도 메트릭
+        metrics.push({
+            metricCode: 'SENSOR.HUMIDITY',
+            eventedAt: eventedAt,
+            valueType: 'NUMBER',
+            valueNumber: 40 + Math.round(Math.random() * 30 * 10) / 10, // 40.0 ~ 70.0
+            extra: JSON.stringify({ tags: { profileId: 'SENSOR_V1' } })
+        });
+    }
+
+    return metrics;
+}
+
+/**
+ * POST /api/v1/mh/gl - 자산별 최신 메트릭 데이터 조회
+ * 특정 자산(asset_key)의 metric_code별 최신 데이터를 조회합니다.
+ * 최근 1분 이내 데이터만 조회됩니다.
+ */
+app.post('/api/v1/mh/gl', (req, res) => {
+    console.log(`[${new Date().toISOString()}] POST /api/v1/mh/gl`);
+
+    const { assetKey } = req.body;
+
+    if (!assetKey) {
+        return res.status(400).json({
+            success: false,
+            data: null,
+            error: {
+                key: 'INVALID_REQUEST',
+                message: 'assetKey is required',
+                data: null
+            },
+            timestamp: new Date().toISOString(),
+            path: '/api/v1/mh/gl'
+        });
+    }
+
+    // 메트릭 데이터 생성
+    const metrics = generateSensorMetrics(assetKey);
+
+    res.json({
+        data: metrics,
+        path: '/api/v1/mh/gl',
+        success: true,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ======================
 // SERVER START
 // ======================
 
