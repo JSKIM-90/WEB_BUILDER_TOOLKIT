@@ -187,17 +187,35 @@ Wkit.onEventBusHandlers = function (eventBusHandlers) {
 
 ### customEvents 형태 오류
 
+#### 2D 컴포넌트
+
 ```javascript
 // ❌ 잘못됨 - selector가 첫 번째 레벨
 this.customEvents = {
     '.my-button': '@buttonClicked'
 };
 
-// ✅ 올바름 - eventType이 첫 번째 레벨
+// ✅ 올바름 - eventType이 첫 번째 레벨, selector가 두 번째 레벨
 this.customEvents = {
     click: {
         '.my-button': '@buttonClicked'
     }
+};
+```
+
+#### 3D 컴포넌트
+
+```javascript
+// ❌ 잘못됨 - 2D 형태를 3D에 사용
+this.customEvents = {
+    click: {
+        '.my-mesh': '@meshClicked'  // 3D에는 selector 개념 없음
+    }
+};
+
+// ✅ 올바름 - eventType → trigger 직접 매핑
+this.customEvents = {
+    click: '@meshClicked'
 };
 ```
 
