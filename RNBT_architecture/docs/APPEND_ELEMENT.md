@@ -73,6 +73,27 @@ init3D.call(this);
 
 ---
 
+## 컴포넌트에서 페이지 접근
+
+컴포넌트에서 페이지에 접근할 때는 `this.page`를 사용합니다.
+
+```javascript
+/**
+ * @this {{
+ *   page: wemb.mainPageComponent,
+ *   appendElement: HTMLDivElement
+ * }}
+ */
+function init() {
+    console.log('Page', this.page);
+    console.log('Component Element', this.appendElement);
+}
+
+init.call(this);
+```
+
+---
+
 ## 관련 문서
 
 - [README.md - appendElement](/RNBT_architecture/README.md#appendelement--component-container)
