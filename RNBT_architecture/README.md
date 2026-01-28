@@ -366,6 +366,8 @@ this.startAllIntervals();
 Default JS는 프로젝트 패턴을 따르는 시작점 코드입니다.
 퍼블리싱(HTML/CSS) 완료 후, 이 템플릿을 복사하여 사용자 정의 로직을 추가합니다.
 
+> **필수 네이밍 규칙:** [DEFAULT_JS_NAMING.md](/RNBT_architecture/docs/DEFAULT_JS_NAMING.md) - 라이브러리가 강제하는 객체명과 형태
+
 ```
 Figma 디자인
     ↓
