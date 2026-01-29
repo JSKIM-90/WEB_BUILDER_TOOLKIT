@@ -274,6 +274,26 @@ const PROPERTY_META_DATA = [
     { id: 4, assetCategoryType: 'UPS', fieldKey: 'input_voltage_v', description: '입력 전압 (V)', isVisible: true, displayOrder: 4 },
     { id: 5, assetCategoryType: 'UPS', fieldKey: 'output_voltage_v', description: '출력 전압 (V)', isVisible: true, displayOrder: 5 },
     { id: 6, assetCategoryType: 'UPS', fieldKey: 'backup_time_min', description: '백업 시간 (분)', isVisible: true, displayOrder: 6 },
+    // PDU 카테고리
+    { id: 101, assetCategoryType: 'PDU', fieldKey: 'rated_power_kw', description: '정격 용량 (kW)', isVisible: true, displayOrder: 1 },
+    { id: 102, assetCategoryType: 'PDU', fieldKey: 'rated_current_a', description: '정격 전류 (A)', isVisible: true, displayOrder: 2 },
+    { id: 103, assetCategoryType: 'PDU', fieldKey: 'input_voltage_v', description: '입력 전압 (V)', isVisible: true, displayOrder: 3 },
+    { id: 104, assetCategoryType: 'PDU', fieldKey: 'phase_type', description: '상 구분', isVisible: true, displayOrder: 4 },
+    { id: 105, assetCategoryType: 'PDU', fieldKey: 'circuit_count', description: '회로 수', isVisible: true, displayOrder: 5 },
+    { id: 106, assetCategoryType: 'PDU', fieldKey: 'manufacturer', description: '제조사', isVisible: true, displayOrder: 6 },
+    // CRAC 카테고리
+    { id: 201, assetCategoryType: 'CRAC', fieldKey: 'cooling_capacity_kw', description: '냉방 용량 (kW)', isVisible: true, displayOrder: 1 },
+    { id: 202, assetCategoryType: 'CRAC', fieldKey: 'airflow_cfm', description: '풍량 (CFM)', isVisible: true, displayOrder: 2 },
+    { id: 203, assetCategoryType: 'CRAC', fieldKey: 'refrigerant_type', description: '냉매 종류', isVisible: true, displayOrder: 3 },
+    { id: 204, assetCategoryType: 'CRAC', fieldKey: 'power_consumption_kw', description: '소비 전력 (kW)', isVisible: true, displayOrder: 4 },
+    { id: 205, assetCategoryType: 'CRAC', fieldKey: 'filter_type', description: '필터 종류', isVisible: true, displayOrder: 5 },
+    { id: 206, assetCategoryType: 'CRAC', fieldKey: 'manufacturer', description: '제조사', isVisible: true, displayOrder: 6 },
+    // SENSOR 카테고리
+    { id: 301, assetCategoryType: 'SENSOR', fieldKey: 'sensor_type', description: '센서 유형', isVisible: true, displayOrder: 1 },
+    { id: 302, assetCategoryType: 'SENSOR', fieldKey: 'measurement_range', description: '측정 범위', isVisible: true, displayOrder: 2 },
+    { id: 303, assetCategoryType: 'SENSOR', fieldKey: 'accuracy', description: '정확도', isVisible: true, displayOrder: 3 },
+    { id: 304, assetCategoryType: 'SENSOR', fieldKey: 'protocol', description: '통신 프로토콜', isVisible: true, displayOrder: 4 },
+    { id: 305, assetCategoryType: 'SENSOR', fieldKey: 'manufacturer', description: '제조사', isVisible: true, displayOrder: 5 },
 ];
 
 const FIELD_LABEL_DATA = [
@@ -291,6 +311,46 @@ const FIELD_LABEL_DATA = [
     { id: 10, assetPropertyMetaId: 4, assetCategoryType: 'UPS', fieldKey: 'input_voltage_v', locale: 'en', label: 'Input Voltage', helpText: 'Input voltage (V)' },
     { id: 11, assetPropertyMetaId: 5, assetCategoryType: 'UPS', fieldKey: 'output_voltage_v', locale: 'en', label: 'Output Voltage', helpText: 'Output voltage (V)' },
     { id: 12, assetPropertyMetaId: 6, assetCategoryType: 'UPS', fieldKey: 'backup_time_min', locale: 'en', label: 'Backup Time', helpText: 'Backup time during outage (min)' },
+    // PDU - Korean
+    { id: 101, assetPropertyMetaId: 101, assetCategoryType: 'PDU', fieldKey: 'rated_power_kw', locale: 'ko', label: '정격 용량', helpText: '분전반 정격 용량 (kW)' },
+    { id: 102, assetPropertyMetaId: 102, assetCategoryType: 'PDU', fieldKey: 'rated_current_a', locale: 'ko', label: '정격 전류', helpText: '정격 전류 (A)' },
+    { id: 103, assetPropertyMetaId: 103, assetCategoryType: 'PDU', fieldKey: 'input_voltage_v', locale: 'ko', label: '입력 전압', helpText: '입력 전압 (V)' },
+    { id: 104, assetPropertyMetaId: 104, assetCategoryType: 'PDU', fieldKey: 'phase_type', locale: 'ko', label: '상 구분', helpText: '단상/삼상 구분' },
+    { id: 105, assetPropertyMetaId: 105, assetCategoryType: 'PDU', fieldKey: 'circuit_count', locale: 'ko', label: '회로 수', helpText: '총 회로(분기) 수' },
+    { id: 106, assetPropertyMetaId: 106, assetCategoryType: 'PDU', fieldKey: 'manufacturer', locale: 'ko', label: '제조사', helpText: '제조사명' },
+    // PDU - English
+    { id: 107, assetPropertyMetaId: 101, assetCategoryType: 'PDU', fieldKey: 'rated_power_kw', locale: 'en', label: 'Rated Power', helpText: 'Rated power capacity (kW)' },
+    { id: 108, assetPropertyMetaId: 102, assetCategoryType: 'PDU', fieldKey: 'rated_current_a', locale: 'en', label: 'Rated Current', helpText: 'Rated current (A)' },
+    { id: 109, assetPropertyMetaId: 103, assetCategoryType: 'PDU', fieldKey: 'input_voltage_v', locale: 'en', label: 'Input Voltage', helpText: 'Input voltage (V)' },
+    { id: 110, assetPropertyMetaId: 104, assetCategoryType: 'PDU', fieldKey: 'phase_type', locale: 'en', label: 'Phase Type', helpText: 'Single/Three phase' },
+    { id: 111, assetPropertyMetaId: 105, assetCategoryType: 'PDU', fieldKey: 'circuit_count', locale: 'en', label: 'Circuit Count', helpText: 'Total circuit branches' },
+    { id: 112, assetPropertyMetaId: 106, assetCategoryType: 'PDU', fieldKey: 'manufacturer', locale: 'en', label: 'Manufacturer', helpText: 'Manufacturer name' },
+    // CRAC - Korean
+    { id: 201, assetPropertyMetaId: 201, assetCategoryType: 'CRAC', fieldKey: 'cooling_capacity_kw', locale: 'ko', label: '냉방 용량', helpText: '냉방 능력 (kW)' },
+    { id: 202, assetPropertyMetaId: 202, assetCategoryType: 'CRAC', fieldKey: 'airflow_cfm', locale: 'ko', label: '풍량', helpText: '공기 순환량 (CFM)' },
+    { id: 203, assetPropertyMetaId: 203, assetCategoryType: 'CRAC', fieldKey: 'refrigerant_type', locale: 'ko', label: '냉매 종류', helpText: '사용 냉매 종류' },
+    { id: 204, assetPropertyMetaId: 204, assetCategoryType: 'CRAC', fieldKey: 'power_consumption_kw', locale: 'ko', label: '소비 전력', helpText: '소비 전력 (kW)' },
+    { id: 205, assetPropertyMetaId: 205, assetCategoryType: 'CRAC', fieldKey: 'filter_type', locale: 'ko', label: '필터 종류', helpText: '에어 필터 종류' },
+    { id: 206, assetPropertyMetaId: 206, assetCategoryType: 'CRAC', fieldKey: 'manufacturer', locale: 'ko', label: '제조사', helpText: '제조사명' },
+    // CRAC - English
+    { id: 207, assetPropertyMetaId: 201, assetCategoryType: 'CRAC', fieldKey: 'cooling_capacity_kw', locale: 'en', label: 'Cooling Capacity', helpText: 'Cooling capacity (kW)' },
+    { id: 208, assetPropertyMetaId: 202, assetCategoryType: 'CRAC', fieldKey: 'airflow_cfm', locale: 'en', label: 'Airflow', helpText: 'Air circulation (CFM)' },
+    { id: 209, assetPropertyMetaId: 203, assetCategoryType: 'CRAC', fieldKey: 'refrigerant_type', locale: 'en', label: 'Refrigerant', helpText: 'Refrigerant type' },
+    { id: 210, assetPropertyMetaId: 204, assetCategoryType: 'CRAC', fieldKey: 'power_consumption_kw', locale: 'en', label: 'Power Consumption', helpText: 'Power consumption (kW)' },
+    { id: 211, assetPropertyMetaId: 205, assetCategoryType: 'CRAC', fieldKey: 'filter_type', locale: 'en', label: 'Filter Type', helpText: 'Air filter type' },
+    { id: 212, assetPropertyMetaId: 206, assetCategoryType: 'CRAC', fieldKey: 'manufacturer', locale: 'en', label: 'Manufacturer', helpText: 'Manufacturer name' },
+    // SENSOR - Korean
+    { id: 301, assetPropertyMetaId: 301, assetCategoryType: 'SENSOR', fieldKey: 'sensor_type', locale: 'ko', label: '센서 유형', helpText: '온도/습도/전력/풍량 등' },
+    { id: 302, assetPropertyMetaId: 302, assetCategoryType: 'SENSOR', fieldKey: 'measurement_range', locale: 'ko', label: '측정 범위', helpText: '센서 측정 가능 범위' },
+    { id: 303, assetPropertyMetaId: 303, assetCategoryType: 'SENSOR', fieldKey: 'accuracy', locale: 'ko', label: '정확도', helpText: '측정 정확도' },
+    { id: 304, assetPropertyMetaId: 304, assetCategoryType: 'SENSOR', fieldKey: 'protocol', locale: 'ko', label: '통신 프로토콜', helpText: 'Modbus/BACnet/SNMP 등' },
+    { id: 305, assetPropertyMetaId: 305, assetCategoryType: 'SENSOR', fieldKey: 'manufacturer', locale: 'ko', label: '제조사', helpText: '제조사명' },
+    // SENSOR - English
+    { id: 306, assetPropertyMetaId: 301, assetCategoryType: 'SENSOR', fieldKey: 'sensor_type', locale: 'en', label: 'Sensor Type', helpText: 'Temp/Humidity/Power/Airflow etc.' },
+    { id: 307, assetPropertyMetaId: 302, assetCategoryType: 'SENSOR', fieldKey: 'measurement_range', locale: 'en', label: 'Measurement Range', helpText: 'Measurable range' },
+    { id: 308, assetPropertyMetaId: 303, assetCategoryType: 'SENSOR', fieldKey: 'accuracy', locale: 'en', label: 'Accuracy', helpText: 'Measurement accuracy' },
+    { id: 309, assetPropertyMetaId: 304, assetCategoryType: 'SENSOR', fieldKey: 'protocol', locale: 'en', label: 'Protocol', helpText: 'Modbus/BACnet/SNMP etc.' },
+    { id: 310, assetPropertyMetaId: 305, assetCategoryType: 'SENSOR', fieldKey: 'manufacturer', locale: 'en', label: 'Manufacturer', helpText: 'Manufacturer name' },
 ];
 
 // UPS용 property mock 데이터 생성 함수
@@ -303,6 +363,55 @@ function generateUPSProperty(assetKey) {
         input_voltage_v: 220,
         output_voltage_v: 220,
         backup_time_min: 15 + (idx * 5)
+    };
+}
+
+// PDU용 property mock 데이터 생성 함수
+function generatePDUProperty(assetKey) {
+    const idx = parseInt(assetKey.replace(/\D/g, '')) || 1;
+    const phases = ['단상', '삼상'];
+    const manufacturers = ['Schneider Electric', 'Eaton', 'ABB', 'LS Electric', 'Siemens'];
+    return {
+        rated_power_kw: 30 + (idx * 10) + Math.round(Math.random() * 5),
+        rated_current_a: 100 + (idx * 25),
+        input_voltage_v: idx % 2 === 0 ? 380 : 220,
+        phase_type: phases[idx % 2],
+        circuit_count: 12 + (idx % 4) * 6,
+        manufacturer: manufacturers[idx % manufacturers.length]
+    };
+}
+
+// CRAC용 property mock 데이터 생성 함수
+function generateCRACProperty(assetKey) {
+    const idx = parseInt(assetKey.replace(/\D/g, '')) || 1;
+    const refrigerants = ['R-410A', 'R-407C', 'R-134a', 'R-32'];
+    const filters = ['HEPA', 'Pre-filter', 'Medium-filter', 'ULPA'];
+    const manufacturers = ['Emerson', 'Daikin', 'Stulz', 'Rittal', 'Carrier'];
+    return {
+        cooling_capacity_kw: 20 + (idx * 15) + Math.round(Math.random() * 5),
+        airflow_cfm: 3000 + (idx * 500),
+        refrigerant_type: refrigerants[idx % refrigerants.length],
+        power_consumption_kw: 8 + (idx * 3) + Math.round(Math.random() * 2 * 10) / 10,
+        filter_type: filters[idx % filters.length],
+        manufacturer: manufacturers[idx % manufacturers.length]
+    };
+}
+
+// SENSOR용 property mock 데이터 생성 함수
+function generateSensorProperty(assetKey) {
+    const idx = parseInt(assetKey.replace(/\D/g, '')) || 1;
+    const sensorTypes = ['온도', '습도', '전력', '풍량'];
+    const ranges = ['-20~80°C', '0~100%RH', '0~1000kW', '0~5000CFM'];
+    const accuracies = ['±0.5°C', '±2%RH', '±1%', '±3%'];
+    const protocols = ['Modbus RTU', 'BACnet IP', 'SNMP', 'Modbus TCP'];
+    const manufacturers = ['Honeywell', 'Siemens', 'Schneider', 'Johnson Controls', 'Sensirion'];
+    const typeIdx = (idx - 1) % 4;
+    return {
+        sensor_type: sensorTypes[typeIdx],
+        measurement_range: ranges[typeIdx],
+        accuracy: accuracies[typeIdx],
+        protocol: protocols[idx % protocols.length],
+        manufacturer: manufacturers[idx % manufacturers.length]
     };
 }
 
@@ -497,16 +606,16 @@ app.post('/api/v1/ast/gx', (req, res) => {
         fl => fl.assetCategoryType === categoryType && fl.locale === locale
     );
 
-    // 4. property 값 파싱 (UPS인 경우 동적 생성)
+    // 4. property 값 파싱 (카테고리별 동적 생성)
     let propertyValues = {};
-    if (categoryType === 'UPS') {
-        propertyValues = generateUPSProperty(assetKey);
-    } else {
-        try {
-            propertyValues = JSON.parse(asset.property || '{}');
-        } catch (e) {
-            propertyValues = {};
-        }
+    switch (categoryType) {
+        case 'UPS': propertyValues = generateUPSProperty(assetKey); break;
+        case 'PDU': propertyValues = generatePDUProperty(assetKey); break;
+        case 'CRAC': propertyValues = generateCRACProperty(assetKey); break;
+        case 'SENSOR': propertyValues = generateSensorProperty(assetKey); break;
+        default:
+            try { propertyValues = JSON.parse(asset.property || '{}'); }
+            catch (e) { propertyValues = {}; }
     }
 
     // 5. properties 배열 조합
