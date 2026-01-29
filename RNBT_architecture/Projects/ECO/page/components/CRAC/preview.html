@@ -120,15 +120,16 @@
             .popup-content {
                 background: #1a1f2e;
                 border-radius: 12px;
-                width: 560px; max-width: 90vw; max-height: 90vh;
+                width: 560px; max-width: 90vw; height: 90vh;
                 overflow: hidden;
                 box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
                 border: 1px solid #2a3142;
+                display: flex; flex-direction: column;
             }
 
             .popup-header {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 20px 24px; border-bottom: 1px solid #2a3142;
+                padding: 20px 24px; border-bottom: 1px solid #2a3142; flex-shrink: 0;
             }
 
             .header-info { display: flex; flex-direction: column; gap: 4px; }
@@ -152,22 +153,21 @@
 
             .popup-body {
                 padding: 24px;
-                max-height: calc(90vh - 80px);
-                overflow-y: auto;
                 display: flex; flex-direction: column; gap: 20px;
+                flex: 1; min-height: 0; overflow: hidden;
             }
 
             /* Section Common */
-            .section { background: #252b3b; border-radius: 8px; overflow: hidden; }
+            .section { background: #252b3b; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; }
             .section-header {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 12px 16px; border-bottom: 1px solid #2a3142;
+                padding: 12px 16px; border-bottom: 1px solid #2a3142; flex-shrink: 0;
             }
             .section-title { font-size: 13px; font-weight: 500; color: #8892a0; text-transform: uppercase; letter-spacing: 0.5px; }
             .section-timestamp { font-size: 11px; color: #6b7280; }
 
             /* Metrics Section */
-            .metrics-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; max-height: 320px; overflow-y: auto; }
+            .metrics-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; flex: 1; overflow-y: auto; }
             .metric-card { background: #252b3b; padding: 20px 16px; text-align: center; }
             .metric-label { font-size: 11px; color: #8892a0; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
             .metric-value { font-size: 32px; font-weight: 600; color: #e0e6ed; line-height: 1; }
@@ -180,14 +180,14 @@
             .bool-off .metric-value-bool { color: #6b7280; }
 
             /* Properties Section */
-            .properties-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; }
+            .properties-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; flex: 1; overflow-y: auto; }
             .property-card { background: #252b3b; padding: 12px 16px; }
             .property-label { font-size: 11px; color: #8892a0; margin-bottom: 4px; }
             .property-value { font-size: 14px; font-weight: 500; color: #e0e6ed; }
             .properties-section.hidden { display: none; }
 
             /* Chart Section */
-            .chart-section .chart-container { width: 100%; height: 180px; }
+            .chart-section .chart-container { width: 100%; flex: 1; min-height: 180px; }
             .chart-section.hidden { display: none; }
 
             /* States */
@@ -547,6 +547,12 @@
             this.timestampSelector = '.section-timestamp';
             this.metricConfig = METRIC_CONFIG;
 
+            this.sectionTitles = {
+                '.metrics-section .section-title': '실시간 측정값',
+                '.properties-section .section-title': '속성 정보',
+                '.chart-section .section-title': '히스토리',
+            };
+
             this.formatTimestamp = formatTimestamp.bind(this);
 
             // chartConfig: 차트 렌더링 설정
@@ -590,6 +596,7 @@
             this.getPopupHTML = () => extractTemplate(htmlCode || '', ctx.templateConfig.popup);
             this.getPopupStyles = () => cssCode || '';
             this.onPopupCreated = function() {
+                applySectionTitles.call(ctx);
                 const { chartSelector, events } = ctx.popupCreatedConfig;
                 if (chartSelector) ctx.createChart(chartSelector);
                 if (events) ctx.bindPopupEvents(events);
@@ -842,6 +849,14 @@
                     }
                 }))
             };
+        }
+
+        function applySectionTitles() {
+            if (!this.sectionTitles) return;
+            Object.entries(this.sectionTitles).forEach(([selector, title]) => {
+                const el = this.popupQuery(selector);
+                if (el) el.textContent = title;
+            });
         }
 
         function onInstanceUnLoad() {

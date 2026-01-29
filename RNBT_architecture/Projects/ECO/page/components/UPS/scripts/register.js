@@ -103,6 +103,13 @@ function initComponent() {
   // Metric Config 참조
   this.metricConfig = METRIC_CONFIG;
 
+  // Section Titles
+  this.sectionTitles = {
+    '.metrics-section .section-title': '실시간 측정값',
+    '.properties-section .section-title': '속성 정보',
+    '.chart-section .section-title': '히스토리',
+  };
+
   // chartConfig: 차트 렌더링 설정
   this.chartConfig = {
     xKey: 'timestamps',
@@ -495,6 +502,15 @@ function getMultiLineChartOption(config, data) {
 // ======================
 
 function onPopupCreated({ chartSelector, events }) {
+  applySectionTitles.call(this);
   chartSelector && this.createChart(chartSelector);
   events && this.bindPopupEvents(events);
+}
+
+function applySectionTitles() {
+  if (!this.sectionTitles) return;
+  Object.entries(this.sectionTitles).forEach(([selector, title]) => {
+    const el = this.popupQuery(selector);
+    if (el) el.textContent = title;
+  });
 }

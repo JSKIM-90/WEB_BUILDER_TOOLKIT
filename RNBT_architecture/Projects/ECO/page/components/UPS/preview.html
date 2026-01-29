@@ -77,20 +77,20 @@
                         <div class="popup-body">
                             <div class="section metrics-section">
                                 <div class="section-header">
-                                    <span class="section-title">실시간 측정값</span>
+                                    <span class="section-title"></span>
                                     <span class="section-timestamp"></span>
                                 </div>
                                 <div class="metrics-container"></div>
                             </div>
                             <div class="section properties-section">
                                 <div class="section-header">
-                                    <span class="section-title">속성 정보</span>
+                                    <span class="section-title"></span>
                                 </div>
                                 <div class="properties-container"></div>
                             </div>
                             <div class="section chart-section">
                                 <div class="section-header">
-                                    <span class="section-title">히스토리</span>
+                                    <span class="section-title"></span>
                                 </div>
                                 <div class="chart-container">
                                     <div class="empty-state">히스토리 데이터가 없습니다</div>
@@ -104,8 +104,8 @@
 
         const cssCode = `
             .popup-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-            .popup-content { background: #1a1f2e; border-radius: 12px; width: 560px; max-width: 90vw; max-height: 90vh; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.4); border: 1px solid #2a3142; }
-            .popup-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #2a3142; }
+            .popup-content { background: #1a1f2e; border-radius: 12px; width: 560px; max-width: 90vw; height: 90vh; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.4); border: 1px solid #2a3142; display: flex; flex-direction: column; }
+            .popup-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #2a3142; flex-shrink: 0; }
             .header-info { display: flex; flex-direction: column; gap: 4px; }
             .ups-name { margin: 0; font-size: 18px; font-weight: 600; color: #e0e6ed; }
             .ups-zone { font-size: 13px; color: #8892a0; }
@@ -116,12 +116,12 @@
             .ups-status[data-status="critical"] { background: rgba(239,68,68,0.15); color: #ef4444; }
             .close-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; background: transparent; border: none; border-radius: 6px; color: #8892a0; cursor: pointer; transition: background 0.15s, color 0.15s; }
             .close-btn:hover { background: #2a3142; color: #e0e6ed; }
-            .popup-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; max-height: calc(90vh - 80px); overflow-y: auto; }
-            .section { background: #252b3b; border-radius: 8px; overflow: hidden; }
-            .section-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #2a3142; }
+            .popup-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; min-height: 0; overflow: hidden; }
+            .section { background: #252b3b; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+            .section-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #2a3142; flex-shrink: 0; }
             .section-title { font-size: 13px; font-weight: 500; color: #8892a0; text-transform: uppercase; letter-spacing: 0.5px; }
             .section-timestamp { font-size: 11px; color: #6b7280; }
-            .metrics-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #2a3142; max-height: 400px; overflow-y: auto; }
+            .metrics-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #2a3142; flex: 1; overflow-y: auto; }
             .metric-card { background: #252b3b; padding: 16px 12px; text-align: center; }
             .metric-label { font-size: 10px; color: #8892a0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
             .metric-value { font-size: 24px; font-weight: 600; color: #e0e6ed; line-height: 1; }
@@ -133,11 +133,11 @@
             .metric-card[data-status="normal"] .metric-value { color: #22c55e; }
             .metric-card[data-status="warning"] .metric-value { color: #eab308; }
             .metric-card[data-status="critical"] .metric-value { color: #ef4444; }
-            .properties-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; }
+            .properties-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #2a3142; flex: 1; overflow-y: auto; }
             .property-card { background: #252b3b; padding: 12px 16px; }
             .property-label { font-size: 11px; color: #8892a0; margin-bottom: 4px; }
             .property-value { font-size: 14px; font-weight: 500; color: #e0e6ed; }
-            .chart-section .chart-container { width: 100%; height: 200px; }
+            .chart-section .chart-container { width: 100%; flex: 1; min-height: 180px; }
             .chart-section.hidden { display: none; }
             .empty-state { padding: 24px 16px; text-align: center; color: #6b7280; font-size: 13px; }
             .error-state { padding: 24px 16px; text-align: center; color: #ef4444; font-size: 13px; }
@@ -522,6 +522,13 @@
             this.timestampSelector = '.section-timestamp';
             this.metricConfig = METRIC_CONFIG;
 
+            // Section Titles
+            this.sectionTitles = {
+                '.metrics-section .section-title': '실시간 측정값',
+                '.properties-section .section-title': '속성 정보',
+                '.chart-section .section-title': '히스토리',
+            };
+
             this.formatTimestamp = formatTimestamp.bind(this);
 
             this.renderAssetInfo = renderAssetInfo.bind(this);
@@ -564,6 +571,7 @@
             this.getPopupHTML = () => extractTemplate(htmlCode || '', ctx.templateConfig.popup);
             this.getPopupStyles = () => cssCode || '';
             this.onPopupCreated = function() {
+                applySectionTitles.call(ctx);
                 const { chartSelector, events } = ctx.popupCreatedConfig;
                 if (chartSelector) ctx.createChart(chartSelector);
                 if (events) ctx.bindPopupEvents(events);
@@ -831,6 +839,14 @@
             const g = parseInt(hex.slice(3, 5), 16);
             const b = parseInt(hex.slice(5, 7), 16);
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function applySectionTitles() {
+            if (!this.sectionTitles) return;
+            Object.entries(this.sectionTitles).forEach(([selector, title]) => {
+                const el = this.popupQuery(selector);
+                if (el) el.textContent = title;
+            });
         }
 
         function onInstanceUnLoad() {

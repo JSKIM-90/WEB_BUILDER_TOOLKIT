@@ -95,6 +95,12 @@ function initComponent() {
   // Metric Config 참조
   this.metricConfig = METRIC_CONFIG;
 
+  // Section Titles
+  this.sectionTitles = {
+    '.metrics-section .section-title': '실시간 전력계측',
+    '.properties-section .section-title': '속성 정보',
+  };
+
   // ======================
   // 4. Table Config
   // ======================
@@ -298,6 +304,7 @@ function switchTab(tabName) {
 // ======================
 
 function onPopupCreated(popupConfig, tableConfig) {
+  applySectionTitles.call(this);
   const { chartSelector, tableSelector, events } = popupConfig;
   if (chartSelector) this.createChart(chartSelector);
   if (tableSelector) {
@@ -305,6 +312,14 @@ function onPopupCreated(popupConfig, tableConfig) {
     this.createTable(tableSelector, tableOptions);
   }
   if (events) this.bindPopupEvents(events);
+}
+
+function applySectionTitles() {
+  if (!this.sectionTitles) return;
+  Object.entries(this.sectionTitles).forEach(([selector, title]) => {
+    const el = this.popupQuery(selector);
+    if (el) el.textContent = title;
+  });
 }
 
 // ======================
