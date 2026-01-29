@@ -6,30 +6,29 @@
  * 책임:
  * - 이벤트 핸들러 해제
  * - 데이터 매핑 해제
+ * - 파라미터 정리
  */
 
 const { offEventBusHandlers } = Wkit;
 const { each } = fx;
 
 // ======================
-// OFF EVENT HANDLERS
+// CLEANUP
 // ======================
 
-if (this.eventBusHandlers) {
-    offEventBusHandlers(this.eventBusHandlers);
-    this.eventBusHandlers = null;
+if (this.masterEventBusHandlers) {
+    offEventBusHandlers(this.masterEventBusHandlers);
+    this.masterEventBusHandlers = null;
 }
 
-// ======================
-// UNREGISTER MAPPINGS
-// ======================
-
-if (this.globalDataMappings) {
+if (this.masterDataMappings) {
     fx.go(
-        this.globalDataMappings,
+        this.masterDataMappings,
         each(({ topic }) => GlobalDataPublisher.unregisterMapping(topic))
     );
-    this.globalDataMappings = null;
+    this.masterDataMappings = null;
 }
+
+this.masterParams = null;
 
 console.log('[Master] before_unload - Cleanup completed');

@@ -20,7 +20,7 @@ const { each } = fx;
 if (this.stopAllIntervals) {
     this.stopAllIntervals();
 }
-this.refreshIntervals = null;
+this.pageIntervals = null;
 this.startAllIntervals = null;
 this.stopAllIntervals = null;
 
@@ -28,23 +28,23 @@ this.stopAllIntervals = null;
 // OFF EVENT HANDLERS
 // ======================
 
-if (this.eventBusHandlers) {
-    offEventBusHandlers(this.eventBusHandlers);
-    this.eventBusHandlers = null;
+if (this.pageEventBusHandlers) {
+    offEventBusHandlers(this.pageEventBusHandlers);
+    this.pageEventBusHandlers = null;
 }
 
 // ======================
 // UNREGISTER MAPPINGS
 // ======================
 
-if (this.globalDataMappings) {
+if (this.pageDataMappings) {
     fx.go(
-        this.globalDataMappings,
+        this.pageDataMappings,
         each(({ topic }) => GlobalDataPublisher.unregisterMapping(topic))
     );
-    this.globalDataMappings = null;
+    this.pageDataMappings = null;
 }
 
-this.currentParams = null;
+this.pageParams = null;
 
 console.log('[Page] before_unload - Cleanup completed');

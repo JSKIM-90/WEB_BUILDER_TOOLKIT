@@ -8,7 +8,7 @@
  * - GET /api/status      : Status summary (PAGE)
  * - GET /api/activity    : Activity log (PAGE)
  *
- * Port: 3004
+ * Port: 4005
  */
 
 const express = require('express');

@@ -5,15 +5,30 @@
  *
  * 책임:
  * - Master 레벨 이벤트 버스 핸들러 등록
+ * - Master 파라미터 상태 초기화
  */
 
 const { onEventBusHandlers } = Wkit;
 
 // ======================
+// MASTER PARAMS STATE
+// ======================
+
+this.masterParams = {
+    tasks: {
+        status: 'all',
+        priority: 'all',
+        type: 'all',
+        assignee: 'all'
+    },
+    activity: {}
+};
+
+// ======================
 // EVENT BUS HANDLERS
 // ======================
 
-this.eventBusHandlers = {
+this.masterEventBusHandlers = {
     /**
      * Sidebar 필터 적용 이벤트
      */
@@ -21,8 +36,8 @@ this.eventBusHandlers = {
         const filters = targetInstance._currentFilters;
         console.log('[Master] Filter applied:', filters);
 
-        this.currentParams.tasks = { ...filters };
-        GlobalDataPublisher.fetchAndPublish('tasks', this, this.currentParams.tasks);
+        this.masterParams.tasks = { ...filters };
+        GlobalDataPublisher.fetchAndPublish('tasks', this, this.masterParams.tasks);
     },
 
     /**
@@ -31,14 +46,14 @@ this.eventBusHandlers = {
     '@filterReset': () => {
         console.log('[Master] Filter reset');
 
-        this.currentParams.tasks = {
+        this.masterParams.tasks = {
             status: 'all',
             priority: 'all',
             type: 'all',
             assignee: 'all'
         };
 
-        GlobalDataPublisher.fetchAndPublish('tasks', this, this.currentParams.tasks);
+        GlobalDataPublisher.fetchAndPublish('tasks', this, this.masterParams.tasks);
     },
 
     /**
@@ -48,12 +63,12 @@ this.eventBusHandlers = {
         console.log('[Master] Refresh all clicked');
 
         // 모든 topic 재발행
-        GlobalDataPublisher.fetchAndPublish('tasks', this, this.currentParams.tasks);
+        GlobalDataPublisher.fetchAndPublish('tasks', this, this.masterParams.tasks);
         GlobalDataPublisher.fetchAndPublish('statusSummary', this);
-        GlobalDataPublisher.fetchAndPublish('activity', this, this.currentParams.activity);
+        GlobalDataPublisher.fetchAndPublish('activity', this, this.masterParams.activity);
     }
 };
 
-onEventBusHandlers(this.eventBusHandlers);
+onEventBusHandlers(this.masterEventBusHandlers);
 
 console.log('[Master] before_load - Event handlers registered');

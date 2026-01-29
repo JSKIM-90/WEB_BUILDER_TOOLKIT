@@ -15,10 +15,7 @@ const { each } = fx;
 // DATA MAPPINGS
 // ======================
 
-this.currentParams = {};
-
-this.globalDataMappings = [
-    ...(this.globalDataMappings || []),
+this.pageDataMappings = [
     {
         topic: 'tasks',
         datasetInfo: {
@@ -46,13 +43,19 @@ this.globalDataMappings = [
 ];
 
 // ======================
+// PARAM MANAGEMENT
+// ======================
+
+this.pageParams = {};
+
+// ======================
 // INITIALIZATION
 // ======================
 
 fx.go(
-    this.globalDataMappings,
+    this.pageDataMappings,
     each(GlobalDataPublisher.registerMapping),
-    each(({ topic }) => this.currentParams[topic] = {}),
+    each(({ topic }) => this.pageParams[topic] = {}),
     each(({ topic }) =>
         GlobalDataPublisher.fetchAndPublish(topic, this)
             .catch(err => console.error(`[fetchAndPublish:${topic}]`, err))
@@ -63,15 +66,15 @@ fx.go(
 // INTERVAL MANAGEMENT
 // ======================
 
-this.refreshIntervals = {};
+this.pageIntervals = {};
 
 this.startAllIntervals = () => {
     fx.go(
-        this.globalDataMappings,
+        this.pageDataMappings,
         each(({ topic, refreshInterval }) => {
             if (refreshInterval) {
-                this.refreshIntervals[topic] = setInterval(() => {
-                    const params = this.currentParams?.[topic] || {};
+                this.pageIntervals[topic] = setInterval(() => {
+                    const params = this.pageParams?.[topic] || {};
                     GlobalDataPublisher.fetchAndPublish(topic, this, params)
                         .catch(err => console.error(`[fetchAndPublish:${topic}]`, err));
                 }, refreshInterval);
@@ -83,7 +86,7 @@ this.startAllIntervals = () => {
 
 this.stopAllIntervals = () => {
     fx.go(
-        Object.values(this.refreshIntervals || {}),
+        Object.values(this.pageIntervals || {}),
         each(clearInterval)
     );
     console.log('[Page] Auto-refresh intervals stopped');
