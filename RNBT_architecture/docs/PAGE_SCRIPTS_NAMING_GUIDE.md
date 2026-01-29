@@ -230,13 +230,69 @@ this.pageIntervals = null;
 | 속성 | 충돌 유형 | 결과 |
 |------|----------|------|
 | `eventBusHandlers` | 이중 등록 | 같은 핸들러가 2번 실행 |
-| `globalDataMappings` | 이중 등록 | 같은 mapping이 2번 register + 2번 fetch |
+| `globalDataMappings` | 덮어쓰기 (Map.set) | 같은 topic이면 무해, 다른 datasetInfo면 Master 설정 유실 |
 | `currentParams` | 덮어쓰기 | Master 파라미터 소실 → 잘못된 API 호출 |
 | `refreshIntervals` | 덮어쓰기 | Master interval ID 유실 → clearInterval 불가, 메모리 누수 |
 
 - `Weventbus.on(eventName, handler)`은 리스너 배열에 push하는 방식이므로, 같은 핸들러를 2번 `on`하면 **이벤트 발생 시 2번 실행**된다
-- `GlobalDataPublisher.registerMapping`도 동일하게 중복 등록되면 불필요한 fetch가 발생한다
+- `GlobalDataPublisher.registerMapping`은 `Map.set()`이므로 같은 topic을 2번 등록하면 **덮어쓰기**된다 (이중 실행은 아님)
 - `currentParams`, `refreshIntervals`는 `= {}`로 재초기화하면 기존 값이 **완전히 소실**된다
+
+---
+
+## 중복 등록 시 동작 차이: eventBusHandlers vs globalDataMappings
+
+두 시스템은 내부 저장 구조가 다르기 때문에 같은 이름으로 중복 등록했을 때 **발생하는 문제가 다르다**.
+
+### eventBusHandlers → 배열 push (이중 실행)
+
+```javascript
+// Weventbus.on() 내부 구현
+listeners[eventName] = listeners[eventName] || [];
+listeners[eventName].push(handler);  // 배열에 push
+```
+
+같은 이벤트에 같은 핸들러를 2번 `on`하면 배열에 2번 들어간다.
+이벤트 발생 시 배열을 순회하므로 **핸들러가 2번 실행**된다.
+
+```
+@filterApplied 리스너 배열:
+  [0] Master의 핸들러  ← Master가 등록
+  [1] Master의 핸들러  ← Page가 Object.assign 후 재등록 (중복)
+  [2] Page의 핸들러    ← Page가 등록
+
+→ @filterApplied 발생 시 Master 핸들러가 2번 실행됨
+```
+
+### globalDataMappings → Map.set() (덮어쓰기)
+
+```javascript
+// GlobalDataPublisher.registerMapping() 내부 구현
+registerMapping({ topic, datasetInfo }) {
+    mappingTable.set(topic, datasetInfo);  // Map.set → 같은 key면 덮어쓰기
+}
+```
+
+같은 topic으로 2번 `registerMapping`하면 마지막 값으로 **덮어쓰기**된다.
+이전 값은 유실되지만, 같은 datasetInfo를 등록하는 경우 **결과적으로 동일**하다.
+
+```
+mappingTable (Map):
+  'tasks' → { datasetName: 'tasksApi', param: {...} }  ← 마지막 등록 값만 남음
+
+→ Master와 Page가 같은 topic에 같은 datasetInfo를 등록하면 동작상 문제 없음
+→ 단, 다른 datasetInfo를 등록하면 Master의 설정이 Page 것으로 덮어써짐
+```
+
+### 요약
+
+| 시스템 | 내부 구조 | 중복 등록 동작 | 실제 영향 |
+|--------|----------|--------------|----------|
+| `Weventbus.on()` | 배열 push | 핸들러 이중 실행 | **버그 발생** |
+| `GlobalDataPublisher.registerMapping()` | Map.set() | 값 덮어쓰기 | 같은 값이면 무해, 다른 값이면 Master 설정 유실 |
+
+따라서 **eventBusHandlers의 중복 등록이 실질적으로 더 위험**하다.
+globalDataMappings는 동작상 문제가 없더라도, 의도를 명확히 하기 위해 분리하는 것을 권장한다.
 
 ---
 
